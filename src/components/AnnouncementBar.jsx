@@ -1,5 +1,5 @@
 const MESSAGE =
-  "🏷️ 100% Lowest Price Guarantee! Found cheaper? Get 200% Refund   |   🚚 Free Delivery above ₹799   |   🌿 Authentic Brands: Dabur, Baidyanath, Zandu, Himalaya & SB Specials";
+  "🏷️ 100% Lowest Price Guarantee! Found cheaper? Get 200% Refund   |   🚚 Free Delivery above ₹799   |   🌿 Authentic Brands: Dabur, Baidyanath, Zandu, Himalaya & SB Specials   |   📞 9350048002";
 
 export default function AnnouncementBar() {
   return (
