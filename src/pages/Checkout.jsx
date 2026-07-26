@@ -257,7 +257,7 @@ export default function Checkout() {
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Secure Checkout</h1>
 
       <div className="grid lg:grid-cols-[1fr_380px] gap-8">
-        <form onSubmit={placeOrder} className="space-y-6">
+        <form onSubmit={placeOrder} className="space-y-6 order-2 lg:order-none">
           <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-card">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-gray-800">Shipping Details</h2>
@@ -405,7 +405,7 @@ export default function Checkout() {
         </form>
 
         {/* Order summary */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-card h-fit">
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-card h-fit order-1 lg:order-none">
           <h2 className="font-semibold text-gray-800 mb-4">Order Summary</h2>
           <div className="space-y-3 max-h-64 overflow-y-auto pr-1 mb-4">
             {items.map((item) => (

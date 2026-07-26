@@ -66,7 +66,13 @@ export default function Header() {
       <div className="container-px max-w-7xl mx-auto py-3 flex items-center gap-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <img src={siteInfo.logoUrl} alt="SB Ayurveda" className="h-10 sm:h-12 w-auto" />
+          <img
+            src={siteInfo.logoUrl}
+            alt="SB Ayurveda"
+            width="48"
+            height="48"
+            className="h-10 sm:h-12 w-auto shrink-0"
+          />
           <div className="leading-tight hidden sm:block">
             <div className="text-[10px] sm:text-[11px] font-semibold text-ayur-gold tracking-wide">
               SB AYURVEDA
@@ -193,9 +199,9 @@ export default function Header() {
           <Link
             to="/track-order"
             className="lg:hidden flex items-center gap-1 text-xs font-semibold text-ayur-green bg-ayur-cream px-2.5 py-2 rounded-full hover:bg-amber-100"
-            aria-label="My Account"
+            aria-label="Track My Order"
           >
-            <UserCircle size={17} /> My Account
+            <PackageSearch size={17} /> Track My Order
           </Link>
           <button
             className="md:hidden p-2 rounded-full hover:bg-gray-100"
@@ -274,7 +280,10 @@ export default function Header() {
             Today's Offers
           </Link>
           <Link to="/track-order" className="hover:text-ayur-green whitespace-nowrap">
-            My Account
+            Track My Order
+          </Link>
+          <Link to="/policy/contact" className="hover:text-ayur-green whitespace-nowrap">
+            Contact Us
           </Link>
           <Link to="/upload-prescription" className="hover:text-ayur-green whitespace-nowrap">
             Upload Prescription
@@ -296,7 +305,10 @@ export default function Header() {
               Today's Offers
             </Link>
             <Link to="/track-order" onClick={() => setMobileMenuOpen(false)} className="py-2.5 hover:text-ayur-green">
-              My Account
+              Track My Order
+            </Link>
+            <Link to="/policy/contact" onClick={() => setMobileMenuOpen(false)} className="py-2.5 hover:text-ayur-green">
+              Contact Us
             </Link>
             <Link to="/upload-prescription" onClick={() => setMobileMenuOpen(false)} className="py-2.5 hover:text-ayur-green">
               Upload Prescription

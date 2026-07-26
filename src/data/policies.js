@@ -1,4 +1,20 @@
 export const policies = {
+  contact: {
+    title: "Contact Us",
+    content: `We'd love to hear from you. Reach out with any questions about your order, our products, or anything else.
+
+Address
+Ground Floor, Barara Road, Near Saini Tour & Travels, Babain, Kurukshetra, Haryana – 136156, India
+
+Email
+sbayurveda4@gmail.com
+
+Phone / WhatsApp
++91 9350048002
+
+Business Hours
+Monday - Saturday, 10:00 AM - 7:00 PM IST`,
+  },
   terms: {
     title: "Terms & Conditions",
     content: `Welcome to SB Ayurveda. By accessing or using this website, you agree to the following terms and conditions. Please read them carefully before proceeding.

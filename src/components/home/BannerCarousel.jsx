@@ -7,11 +7,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 // types). Swap files in public/banners/ to update — same filenames.
 const SLIDES = [
   {
-    src: "/banners/hero-best-brands.jpg",
-    alt: "Best Brands Available — Dabur, Baidyanath, Zandu, Himalaya, Kottakkal, Patanjali — Up to 50% Off",
-    to: "/category/popular",
-  },
-  {
     src: "/banners/2x-guarantee.jpg",
     alt: "Found It Cheaper? We Pay You 2X — SB Ayurveda Lowest Price Guarantee",
     to: "/policy/2x-guarantee",

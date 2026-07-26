@@ -1,6 +1,6 @@
 // Real SB Ayurveda business details, pulled from sbayurveda.com.
 export const siteInfo = {
-  logoUrl: "https://sbayurveda.com/wp-content/uploads/2026/02/cropped-logo.png",
+  logoUrl: "https://old.sbayurveda.com/wp-content/uploads/2026/02/cropped-logo.png",
   phone: "+91-93500-48002",
   phoneHref: "tel:+919350048002",
   whatsappNumber: "919350048002",

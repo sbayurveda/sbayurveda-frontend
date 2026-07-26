@@ -165,8 +165,16 @@ function InvoiceModal({ order, onClose }) {
           Order status: {statusMeta(order.status).label}
         </p>
 
-        <p className="text-center text-xs text-gray-400 border-t border-gray-100 pt-4 mb-6">
-          Thank you for shopping with SB Ayurveda — 100% Genuine Products, 2X Refund Guarantee.
+        <div className="flex justify-end mb-6">
+          <div className="text-right text-xs text-gray-500">
+            <p className="mb-8">For SB Ayurveda</p>
+            <p className="font-medium text-gray-700 border-t border-gray-300 pt-1">Authorized Signatory</p>
+          </div>
+        </div>
+
+        <p className="text-center text-[11px] text-gray-400 border-t border-gray-100 pt-4 mb-6">
+          In Case Of Any Dispute, The Matter Shall Be Subject To The Exclusive Jurisdiction Of The Courts In
+          Kurukshetra, Haryana Only.
         </p>
 
         <button

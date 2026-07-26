@@ -72,7 +72,8 @@ export default function Footer() {
             <li><Link to="/category/popular" className="hover:text-white">Shop All Products</Link></li>
             <li><Link to="/offers" className="hover:text-white">Today's Offers</Link></li>
             <li><Link to="/upload-prescription" className="hover:text-white">Upload Prescription</Link></li>
-            <li><Link to="/track-order" className="hover:text-white">My Account</Link></li>
+            <li><Link to="/track-order" className="hover:text-white">Track My Order</Link></li>
+            <li><Link to="/policy/contact" className="hover:text-white">Contact Us</Link></li>
           </ul>
         </div>
 

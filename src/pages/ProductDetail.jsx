@@ -10,6 +10,8 @@ import {
   BadgeCheck,
   Eye,
   TrendingUp,
+  MapPin,
+  Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useCatalogStore } from "../context/catalogStore";
@@ -18,10 +20,15 @@ import ProductCard from "../components/ProductCard";
 import ProductImageGallery from "../components/ProductImageGallery";
 import { testimonials } from "../data/testimonials";
 import { getSocialProof } from "../utils/socialProof";
+import { getDeliveryEstimate } from "../utils/pincode";
+import { useJsonLd } from "../utils/useJsonLd";
 
 export default function ProductDetail() {
   const { slug } = useParams();
   const [qty, setQty] = useState(1);
+  const [pincode, setPincode] = useState("");
+  const [pincodeResult, setPincodeResult] = useState(null);
+  const [checkingPincode, setCheckingPincode] = useState(false);
 
   const addToCart = useStore((s) => s.addToCart);
   const toggleWishlist = useStore((s) => s.toggleWishlist);
@@ -30,6 +37,33 @@ export default function ProductDetail() {
   const status = useCatalogStore((s) => s.status);
 
   const product = products.find((p) => p.slug === slug);
+
+  useJsonLd(
+    product && {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: product.name,
+      image: product.images?.length ? product.images : [product.image],
+      description: product.description?.replace(/<[^>]+>/g, "").slice(0, 500),
+      brand: { "@type": "Brand", name: product.brand },
+      offers: {
+        "@type": "Offer",
+        url: `https://sbayurveda.com/product/${product.slug}`,
+        priceCurrency: "INR",
+        price: product.price,
+        availability: product.inStock
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+      },
+      ...(product.reviews > 0 && {
+        aggregateRating: {
+          "@type": "AggregateRating",
+          ratingValue: product.rating,
+          reviewCount: product.reviews,
+        },
+      }),
+    }
+  );
 
   if (!product) {
     if (status === "loading" || status === "idle") {
@@ -51,6 +85,24 @@ export default function ProductDetail() {
   function handleAdd() {
     addToCart(product, qty);
     toast.success(`${product.name} added to cart!`, { icon: "🛒" });
+  }
+
+  async function checkPincode(e) {
+    e.preventDefault();
+    if (!/^\d{6}$/.test(pincode)) {
+      setPincodeResult({ ok: false, msg: "Please enter a valid 6-digit pincode" });
+      return;
+    }
+    setCheckingPincode(true);
+    setPincodeResult(null);
+    const est = await getDeliveryEstimate(pincode);
+    setPincodeResult({
+      ok: true,
+      msg: est.guessed
+        ? `Estimated delivery in ${est.days.min}-${est.days.max} business days`
+        : `Estimated delivery to ${est.city ? `${est.city}, ` : ""}${est.state}: ${est.days.min}-${est.days.max} business days`,
+    });
+    setCheckingPincode(false);
   }
 
   return (
@@ -141,6 +193,34 @@ export default function ProductDetail() {
             >
               <Heart size={18} className={isWishlisted ? "fill-red-500 text-red-500" : "text-gray-400"} />
             </button>
+          </div>
+
+          <div className="border border-gray-200 rounded-lg p-3 mb-6">
+            <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+              <MapPin size={14} /> Check Delivery Time
+            </p>
+            <form onSubmit={checkPincode} className="flex gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="Enter Pincode"
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayur-green/40"
+              />
+              <button
+                type="submit"
+                disabled={checkingPincode}
+                className="btn-primary px-4 py-2 text-xs disabled:opacity-60"
+              >
+                {checkingPincode ? <Loader2 size={14} className="animate-spin" /> : "Check"}
+              </button>
+            </form>
+            {pincodeResult && (
+              <p className={`text-xs mt-2 ${pincodeResult.ok ? "text-ayur-green" : "text-red-500"}`}>
+                {pincodeResult.msg}
+              </p>
+            )}
           </div>
 
           <div
