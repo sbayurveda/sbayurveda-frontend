@@ -83,11 +83,6 @@ export default function Checkout() {
     try {
       const est = await getDeliveryEstimate(pincode);
       setDeliveryEstimate(est);
-      // Note: the free pincode API's "city" is really a post office branch
-      // name (e.g. "Haji S Musafarkhana" for Mumbai 400001) rather than the
-      // city name people expect. We still auto-fill it since it's editable
-      // and better than leaving the field blank, but the customer should
-      // double check it.
       setForm((f) => ({
         ...f,
         city: est.city && !f.city ? est.city : f.city,

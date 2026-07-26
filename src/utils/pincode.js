@@ -4,10 +4,12 @@
 // There's no free public API for actual courier transit times (Amazon/Delhivery/etc.
 // don't expose one without a merchant account), so we use a tier map based on
 // proximity to the warehouse and city size — the same rough tiers couriers
-// themselves quote at checkout. The free zippopotam.us postal API (CORS-enabled,
-// no key) resolves pincode -> city/state. If the pincode isn't in its dataset
-// (common for smaller towns) or the state isn't recognized, we fall back to a
-// generic estimate.
+// themselves quote at checkout. India Post's own official pincode API
+// (api.postalpincode.in, CORS-enabled, no key) resolves pincode -> district/state.
+// It has far better coverage of small-town Indian pincodes than general-purpose
+// postal APIs (e.g. zippopotam.us returns nothing at all for our own warehouse
+// pincode, 136156). If a pincode still isn't found, we fall back to a generic
+// estimate.
 
 // Tier 1: Haryana, Punjab, and immediate neighbors of the Kurukshetra warehouse.
 const NEARBY_STATES = ["Haryana", "Punjab", "Delhi", "New Delhi", "Chandigarh"];
@@ -39,14 +41,14 @@ function isMetro(city) {
 
 export async function lookupPincode(pincode) {
   try {
-    const res = await fetch(`https://api.zippopotam.us/in/${pincode}`);
+    const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
     if (!res.ok) return null;
-    const data = await res.json();
-    const place = data.places?.[0];
-    if (!place) return null;
+    const [result] = await res.json();
+    const office = result?.PostOffice?.[0];
+    if (!office) return null;
     return {
-      city: place["place name"],
-      state: place.state,
+      city: office.District,
+      state: office.State,
     };
   } catch {
     return null;
