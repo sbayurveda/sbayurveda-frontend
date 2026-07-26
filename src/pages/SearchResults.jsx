@@ -2,6 +2,7 @@ import { useSearchParams } from "react-router-dom";
 import { useCatalogStore } from "../context/catalogStore";
 import { searchProducts } from "../utils/searchProducts";
 import ProductCard from "../components/ProductCard";
+import { useSeo } from "../utils/useSeo";
 
 export default function SearchResults() {
   const [params] = useSearchParams();
@@ -9,6 +10,13 @@ export default function SearchResults() {
   const products = useCatalogStore((s) => s.products);
   const status = useCatalogStore((s) => s.status);
   const results = searchProducts(products, q);
+
+  useSeo({
+    title: q ? `Search: ${q}` : "Search",
+    description: `Search results for "${q}" at SB Ayurveda — genuine Ayurvedic products at India's lowest prices.`,
+    path: "/search",
+    noindex: true,
+  });
 
   if (status === "loading" && products.length === 0) {
     return (

@@ -18,6 +18,7 @@ import { useCart } from "../context/useCart";
 import { detectCurrentLocation } from "../utils/geolocation";
 import { getDeliveryEstimate } from "../utils/pincode";
 import { isBridgeConfigured, createPayment, verifyPayment, placeCodOrder } from "../api/checkoutBridge";
+import { useSeo } from "../utils/useSeo";
 
 const PAYMENT_METHODS = [
   { id: "online", label: "Pay Online — UPI / Card / Netbanking", icon: Smartphone },
@@ -35,6 +36,8 @@ const INDIAN_STATES = [
 ];
 
 export default function Checkout() {
+  useSeo({ title: "Secure Checkout", path: "/checkout", noindex: true });
+
   const { items, mrpTotal, savings, couponDiscount, total } = useCart();
   const clearCart = useStore((s) => s.clearCart);
   const updateQty = useStore((s) => s.updateQty);

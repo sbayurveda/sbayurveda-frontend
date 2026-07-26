@@ -2,10 +2,17 @@ import { Tag, ShieldCheck } from "lucide-react";
 import { useCatalogStore } from "../context/catalogStore";
 import ProductCard from "../components/ProductCard";
 import CountdownTimer from "../components/CountdownTimer";
+import { useSeo } from "../utils/useSeo";
 
 export default function Offers() {
   const products = useCatalogStore((s) => s.products);
   const sorted = [...products].sort((a, b) => b.discountPct - a.discountPct);
+
+  useSeo({
+    title: "Today's Offers & Deals on Ayurvedic Products",
+    description: "Today's best deals on genuine Ayurvedic products at SB Ayurveda — up to 55% off Dabur, Baidyanath, Himalaya, Kottakkal & more. Lowest price guaranteed, free shipping above ₹799.",
+    path: "/offers",
+  });
 
   return (
     <div>

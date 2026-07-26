@@ -3,11 +3,14 @@ import { Heart } from "lucide-react";
 import { useStore } from "../context/store";
 import { useCatalogStore } from "../context/catalogStore";
 import ProductCard from "../components/ProductCard";
+import { useSeo } from "../utils/useSeo";
 
 export default function Wishlist() {
   const wishlist = useStore((s) => s.wishlist);
   const products = useCatalogStore((s) => s.products);
   const items = products.filter((p) => wishlist.includes(p.id));
+
+  useSeo({ title: "My Wishlist", path: "/wishlist", noindex: true });
 
   return (
     <div className="container-px max-w-7xl mx-auto py-8">

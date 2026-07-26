@@ -1,24 +1,12 @@
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Leaf } from "lucide-react";
+import { useSeo } from "../utils/useSeo";
 
 export default function NotFound() {
-  useEffect(() => {
-    // Static hosting can't return a real HTTP 404 for client-side routes (the
-    // server always serves index.html), so we signal "don't index this" to
-    // crawlers the one way we can from here, to avoid soft-404 penalties.
-    // index.html already ships a robots meta tag, so update it in place
-    // rather than appending a second, conflicting one.
-    const meta = document.querySelector('meta[name="robots"]');
-    const prevContent = meta?.content;
-    if (meta) meta.content = "noindex";
-    const prevTitle = document.title;
-    document.title = "Page Not Found — SB Ayurveda";
-    return () => {
-      if (meta) meta.content = prevContent;
-      document.title = prevTitle;
-    };
-  }, []);
+  // Static hosting can't return a real HTTP 404 for client-side routes (the
+  // server always serves index.html), so we signal "don't index this" to
+  // crawlers the one way we can from here, to avoid soft-404 penalties.
+  useSeo({ title: "Page Not Found", path: "/404", noindex: true });
 
   return (
     <div className="container-px max-w-lg mx-auto py-24 text-center">

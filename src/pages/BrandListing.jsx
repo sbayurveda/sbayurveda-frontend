@@ -6,6 +6,7 @@ import { slugify } from "../utils/slugify";
 import { brandLogos } from "../data/brandLogos";
 import { searchProducts } from "../utils/searchProducts";
 import ProductCard from "../components/ProductCard";
+import { useSeo } from "../utils/useSeo";
 
 const SORT_OPTIONS = [
   { id: "relevance", label: "Relevance" },
@@ -46,6 +47,14 @@ export default function BrandListing() {
         return items;
     }
   }, [brandProducts, brand, sort, query]);
+
+  useSeo({
+    title: brand ? `${brand.name} Products` : undefined,
+    description: brand
+      ? `Buy genuine ${brand.name} Ayurvedic products online at SB Ayurveda — authentic, lowest price guaranteed, 2X Refund Guarantee. Free shipping above ₹799 and Cash on Delivery.`
+      : undefined,
+    path: `/brand/${brandSlug}`,
+  });
 
   if (status === "loading" && products.length === 0) {
     return (

@@ -4,6 +4,7 @@ import { SlidersHorizontal } from "lucide-react";
 import { useCatalogStore } from "../context/catalogStore";
 import { categories } from "../data/categories";
 import ProductCard from "../components/ProductCard";
+import { useSeo } from "../utils/useSeo";
 
 const SORT_OPTIONS = [
   { id: "relevance", label: "Relevance" },
@@ -26,6 +27,13 @@ export default function CategoryListing() {
     categories.find((c) => c.id === categoryId)?.label ||
     categoryId?.replace(/-/g, " ") ||
     "Products";
+
+  const seoTitle = categoryId === "popular" ? "Shop All Ayurvedic Products" : `${categoryLabel} — Ayurvedic Products`;
+  useSeo({
+    title: seoTitle,
+    description: `Shop genuine ${categoryLabel} Ayurvedic products online at SB Ayurveda — authentic brands at India's lowest prices, 2X Refund Guarantee, free shipping above ₹799 and Cash on Delivery.`,
+    path: `/category/${categoryId}`,
+  });
 
   const list = useMemo(() => {
     let items =

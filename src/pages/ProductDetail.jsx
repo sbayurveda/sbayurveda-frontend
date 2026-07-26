@@ -22,6 +22,7 @@ import { testimonials } from "../data/testimonials";
 import { getSocialProof } from "../utils/socialProof";
 import { getDeliveryEstimate } from "../utils/pincode";
 import { useJsonLd } from "../utils/useJsonLd";
+import { useSeo } from "../utils/useSeo";
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -64,6 +65,18 @@ export default function ProductDetail() {
       }),
     }
   );
+
+  const plainDesc = product?.description?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  useSeo({
+    title: product?.name,
+    description: product
+      ? (plainDesc && plainDesc.length > 60
+          ? plainDesc.slice(0, 155)
+          : `Buy ${product.name} by ${product.brand} online at SB Ayurveda — genuine, lowest price guaranteed, with 2X Refund Guarantee. Free shipping above ₹799, Cash on Delivery available.`)
+      : undefined,
+    path: `/product/${slug}`,
+    image: product?.image,
+  });
 
   if (!product) {
     if (status === "loading" || status === "idle") {

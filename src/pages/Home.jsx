@@ -9,9 +9,12 @@ import ShopAllProductsCTA from "../components/home/ShopAllProductsCTA";
 import PrescriptionCTA from "../components/home/PrescriptionCTA";
 import Testimonials from "../components/home/Testimonials";
 import PrescriptionModal from "../components/PrescriptionModal";
+import { useSeo } from "../utils/useSeo";
 
 export default function Home() {
   const [rxOpen, setRxOpen] = useState(false);
+
+  useSeo({ path: "/" });
 
   return (
     <div>

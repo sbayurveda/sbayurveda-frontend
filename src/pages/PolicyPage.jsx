@@ -1,9 +1,18 @@
 import { useParams, Navigate } from "react-router-dom";
 import { policies } from "../data/policies";
+import { useSeo } from "../utils/useSeo";
 
 export default function PolicyPage() {
   const { policyId } = useParams();
   const policy = policies[policyId];
+
+  useSeo({
+    title: policy?.title,
+    description: policy
+      ? `${policy.title} — ${policy.content.replace(/\s+/g, " ").trim().slice(0, 150)}`
+      : undefined,
+    path: `/policy/${policyId}`,
+  });
 
   if (!policy) return <Navigate to="/" replace />;
 

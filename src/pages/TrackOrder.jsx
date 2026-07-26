@@ -4,6 +4,7 @@ import { UserCircle, ShoppingBag, ExternalLink, Printer, X, Loader2, ChevronDown
 import { useStore } from "../context/store";
 import { isBridgeConfigured, getOrderStatus } from "../api/checkoutBridge";
 import { siteInfo } from "../data/siteInfo";
+import { useSeo } from "../utils/useSeo";
 
 // Real WooCommerce order statuses — not a fictional shipping-carrier
 // progress bar, since we only ever know what WooCommerce itself reports.
@@ -445,6 +446,8 @@ function TrackByIdPanel() {
 
 export default function TrackOrder() {
   const orders = useStore((s) => s.orders);
+
+  useSeo({ title: "Track My Order", path: "/track-order", noindex: true });
 
   return (
     <div className="container-px max-w-5xl mx-auto py-10">
