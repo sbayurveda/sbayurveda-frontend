@@ -1,8 +1,7 @@
-export const coupons = {
-  FIRST10: { type: "percent", value: 10, minOrder: 299, label: "10% off on your first order" },
-  AYUR2X: { type: "flat", value: 100, minOrder: 799, label: "Flat ₹100 off above ₹799" },
-  FREESHIP: { type: "shipping", value: 0, minOrder: 0, label: "Free shipping on any order" },
-};
+// No coupons are currently active (disabled site-wide by request). Re-add
+// entries here — and to the matching COUPONS object in
+// sb-ayurveda-server/coupons.js — to bring a code back.
+export const coupons = {};
 
 export function validateCoupon(code, subtotal) {
   const c = coupons[code?.toUpperCase()];

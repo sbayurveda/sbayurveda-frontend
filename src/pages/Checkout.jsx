@@ -195,7 +195,7 @@ export default function Checkout() {
         theme: { color: "#005F33" },
         handler: async (response) => {
           try {
-            const result = await verifyPayment({ ...response, customer, items: cartItems });
+            const result = await verifyPayment({ ...response, customer, items: cartItems, couponCode: appliedCoupon?.code });
             finishOrder(String(result.orderNumber || result.orderId), result.total);
           } catch (err) {
             toast.error(err.message || "Payment succeeded but we couldn't record your order. Please contact us.");

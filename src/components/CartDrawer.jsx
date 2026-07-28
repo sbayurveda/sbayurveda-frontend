@@ -1,8 +1,6 @@
-import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { X, Minus, Plus, Trash2, ShoppingBag, Tag } from "lucide-react";
-import toast from "react-hot-toast";
+import { X, Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useStore } from "../context/store";
 import { useCart } from "../context/useCart";
 
@@ -11,28 +9,12 @@ export default function CartDrawer() {
   const closeCart = useStore((s) => s.closeCart);
   const updateQty = useStore((s) => s.updateQty);
   const removeFromCart = useStore((s) => s.removeFromCart);
-  const applyCoupon = useStore((s) => s.applyCoupon);
-  const removeCoupon = useStore((s) => s.removeCoupon);
-  const appliedCoupon = useStore((s) => s.appliedCoupon);
   const freeShippingThreshold = useStore((s) => s.getFreeShippingThreshold());
 
   const { items, mrpTotal, subtotal, savings, couponDiscount, total } = useCart();
-  const [couponInput, setCouponInput] = useState("");
 
   const remainingForFreeShip = Math.max(freeShippingThreshold - subtotal, 0);
   const shippingProgress = Math.min((subtotal / freeShippingThreshold) * 100, 100);
-
-  function handleApplyCoupon(e) {
-    e.preventDefault();
-    if (!couponInput.trim()) return;
-    const result = applyCoupon(couponInput, subtotal);
-    if (result.valid) {
-      toast.success(`Coupon applied: ${result.label}`);
-      setCouponInput("");
-    } else {
-      toast.error(result.message);
-    }
-  }
 
   return (
     <AnimatePresence>
@@ -155,30 +137,6 @@ export default function CartDrawer() {
                       🎉 You saved ₹{savings + couponDiscount} on this order with SB Lowest
                       Price Guarantee!
                     </p>
-                  )}
-
-                  {appliedCoupon ? (
-                    <div className="flex items-center justify-between bg-ayur-cream rounded-lg px-3 py-2 text-sm">
-                      <span className="flex items-center gap-1.5 text-ayur-green-dark font-medium">
-                        <Tag size={14} /> {appliedCoupon.code} applied
-                      </span>
-                      <button
-                        onClick={removeCoupon}
-                        className="text-xs text-red-500 font-medium hover:underline"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <form onSubmit={handleApplyCoupon} className="flex gap-2">
-                      <input
-                        value={couponInput}
-                        onChange={(e) => setCouponInput(e.target.value)}
-                        placeholder="Coupon code e.g. FIRST10"
-                        className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ayur-green/30"
-                      />
-                      <button className="btn-primary px-4 text-sm shrink-0">Apply</button>
-                    </form>
                   )}
 
                   <div className="text-sm space-y-1">

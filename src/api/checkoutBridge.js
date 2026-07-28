@@ -32,13 +32,14 @@ export function createPayment({ items, couponCode }) {
   return postJson("/api/create-payment", { items, couponCode });
 }
 
-export function verifyPayment({ razorpay_order_id, razorpay_payment_id, razorpay_signature, customer, items }) {
+export function verifyPayment({ razorpay_order_id, razorpay_payment_id, razorpay_signature, customer, items, couponCode }) {
   return postJson("/api/verify-payment", {
     razorpay_order_id,
     razorpay_payment_id,
     razorpay_signature,
     customer,
     items,
+    couponCode,
   });
 }
 
