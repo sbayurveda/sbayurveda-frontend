@@ -96,6 +96,7 @@ export default function ProductDetail() {
     .slice(0, 4);
 
   function handleAdd() {
+    if (!product.inStock) return;
     addToCart(product, qty);
     toast.success(`${product.name} added to cart!`, { icon: "🛒" });
   }
@@ -140,6 +141,10 @@ export default function ProductDetail() {
             {product.brand}
           </span>
           <h1 className="text-2xl font-bold text-gray-800 mt-1 mb-2">{product.name}</h1>
+
+          {!product.inStock && (
+            <span className="inline-block badge bg-gray-700 text-white mb-3">Out of Stock</span>
+          )}
 
           <div className="flex items-center gap-2 mb-3">
             <span className="flex items-center gap-1 text-sm bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-semibold">
@@ -188,16 +193,28 @@ export default function ProductDetail() {
 
           <div className="flex items-center gap-3 mb-6">
             <div className="flex items-center border border-gray-200 rounded-lg">
-              <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="p-2.5 hover:bg-gray-50">
+              <button
+                onClick={() => setQty((q) => Math.max(1, q - 1))}
+                disabled={!product.inStock}
+                className="p-2.5 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <Minus size={15} />
               </button>
               <span className="w-8 text-center font-medium">{qty}</span>
-              <button onClick={() => setQty((q) => q + 1)} className="p-2.5 hover:bg-gray-50">
+              <button
+                onClick={() => setQty((q) => q + 1)}
+                disabled={!product.inStock}
+                className="p-2.5 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <Plus size={15} />
               </button>
             </div>
-            <button onClick={handleAdd} className="btn-primary flex-1 py-3 text-sm">
-              ADD TO CART — ₹{product.price * qty}
+            <button
+              onClick={handleAdd}
+              disabled={!product.inStock}
+              className="btn-primary flex-1 py-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {product.inStock ? `ADD TO CART — ₹${product.price * qty}` : "Out of Stock"}
             </button>
             <button
               onClick={() => toggleWishlist(product.id)}

@@ -14,6 +14,7 @@ export default function ProductCard({ product }) {
 
   function handleAdd(e) {
     e.preventDefault();
+    if (!product.inStock) return;
     addToCart(product, qty);
     setAdded(true);
     toast.success(`${product.name} added to cart!`, { icon: "🛒" });
@@ -36,9 +37,14 @@ export default function ProductCard({ product }) {
         />
       </button>
 
-      {product.discountPct > 0 && (
+      {product.discountPct > 0 && product.inStock && (
         <span className="absolute top-2.5 left-2.5 z-10 badge bg-red-600 text-white">
           {product.discountPct}% OFF
+        </span>
+      )}
+      {!product.inStock && (
+        <span className="absolute top-2.5 left-2.5 z-10 badge bg-gray-700 text-white">
+          Out of Stock
         </span>
       )}
 
@@ -47,7 +53,9 @@ export default function ProductCard({ product }) {
           <img
             src={product.image}
             alt={product.name}
-            className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-300"
+            className={`w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-300 ${
+              product.inStock ? "" : "opacity-50 grayscale"
+            }`}
             loading="lazy"
           />
         </div>
@@ -108,11 +116,12 @@ export default function ProductCard({ product }) {
             </div>
             <button
               onClick={handleAdd}
-              className={`flex-1 btn-primary text-xs sm:text-sm py-2 ${
+              disabled={!product.inStock}
+              className={`flex-1 btn-primary text-xs sm:text-sm py-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                 added ? "bg-ayur-green-dark" : ""
               }`}
             >
-              {added ? "Added ✓" : "ADD TO CART"}
+              {!product.inStock ? "Out of Stock" : added ? "Added ✓" : "ADD TO CART"}
             </button>
           </div>
         </div>
