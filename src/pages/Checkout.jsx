@@ -282,7 +282,7 @@ export default function Checkout() {
               />
               <input
                 value={form.phone}
-                onChange={(e) => updateField("phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                onChange={(e) => updateField("phone", e.target.value.replace(/\D/g, "").slice(-10))}
                 placeholder="10-digit Phone Number *"
                 inputMode="numeric"
                 className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ayur-green/30"
