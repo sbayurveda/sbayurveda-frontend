@@ -4,6 +4,7 @@ import { X, Upload, MessageCircle, FileCheck2, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { buildWhatsAppLink } from "../utils/whatsapp";
 import { sendNotification } from "../api/checkoutBridge";
+import { capPhoneInput, cleanPhone } from "../utils/phone";
 
 export default function PrescriptionModal({ open, onClose }) {
   const [name, setName] = useState("");
@@ -14,10 +15,11 @@ export default function PrescriptionModal({ open, onClose }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!name.trim() || !/^\d{10}$/.test(phone)) {
+    if (!name.trim() || !/^(0091|0|\+91)?\d{10}$/.test(phone)) {
       toast.error("Please enter your name and a valid 10-digit phone number");
       return;
     }
+    const cleanedPhone = cleanPhone(phone);
 
     setSending(true);
     try {
@@ -25,7 +27,7 @@ export default function PrescriptionModal({ open, onClose }) {
         subject: "Prescription Upload Request",
         lines: [
           ["Name", name],
-          ["Phone", phone],
+          ["Phone", cleanedPhone],
           ["Note", note || "N/A"],
           ["File", fileName ? `${fileName} (attach separately — email doesn't carry the file yet)` : "Not attached, will share on WhatsApp"],
         ],
@@ -35,7 +37,7 @@ export default function PrescriptionModal({ open, onClose }) {
     } catch {
       // Email not set up yet, or the send failed — fall back to WhatsApp so
       // the customer's request still goes through either way.
-      const msg = `Hi SB Ayurveda, I'd like a free doctor consultation.\n\nName: ${name}\nPhone: ${phone}\nNote: ${
+      const msg = `Hi SB Ayurveda, I'd like a free doctor consultation.\n\nName: ${name}\nPhone: ${cleanedPhone}\nNote: ${
         note || "N/A"
       }\nPrescription file: ${fileName || "Will share on WhatsApp"}`;
       window.open(buildWhatsAppLink(msg), "_blank");
@@ -87,7 +89,7 @@ export default function PrescriptionModal({ open, onClose }) {
                 />
                 <input
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(-10))}
+                  onChange={(e) => setPhone(capPhoneInput(e.target.value))}
                   placeholder="10-digit Phone Number"
                   inputMode="numeric"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ayur-green/30"

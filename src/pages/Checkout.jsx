@@ -19,6 +19,7 @@ import { detectCurrentLocation } from "../utils/geolocation";
 import { getDeliveryEstimate } from "../utils/pincode";
 import { isBridgeConfigured, createPayment, verifyPayment, placeCodOrder } from "../api/checkoutBridge";
 import { useSeo } from "../utils/useSeo";
+import { capPhoneInput, cleanPhone } from "../utils/phone";
 
 const PAYMENT_METHODS = [
   { id: "online", label: "Pay Online — UPI / Card / Netbanking", icon: Smartphone },
@@ -120,7 +121,7 @@ export default function Checkout() {
 
   function validate() {
     if (!form.name.trim()) return "Please enter your name";
-    if (!/^\d{10}$/.test(form.phone)) return "Please enter a valid 10-digit phone number";
+    if (!/^(0091|0|\+91)?\d{10}$/.test(form.phone)) return "Please enter a valid 10-digit phone number";
     if (!/^\S+@\S+\.\S+$/.test(form.email)) return "Please enter a valid email address";
     if (!/^\d{6}$/.test(form.pincode)) return "Please enter a valid 6-digit pincode";
     if (!form.flatBuilding.trim()) return "Please enter your flat/house/building";
@@ -139,7 +140,7 @@ export default function Checkout() {
     }
 
     const customer = {
-      name: form.name, phone: form.phone, email: form.email, pincode: form.pincode,
+      name: form.name, phone: cleanPhone(form.phone), email: form.email, pincode: form.pincode,
       flatBuilding: form.flatBuilding, area: form.area, landmark: form.landmark,
       city: form.city, state: form.state,
     };
@@ -191,7 +192,7 @@ export default function Checkout() {
         name: "SB Ayurveda",
         description: "Order Payment",
         order_id: pay.razorpayOrderId,
-        prefill: { name: form.name, email: form.email, contact: form.phone },
+        prefill: { name: form.name, email: form.email, contact: cleanPhone(form.phone) },
         theme: { color: "#005F33" },
         handler: async (response) => {
           try {
@@ -282,7 +283,7 @@ export default function Checkout() {
               />
               <input
                 value={form.phone}
-                onChange={(e) => updateField("phone", e.target.value.replace(/\D/g, "").slice(-10))}
+                onChange={(e) => updateField("phone", capPhoneInput(e.target.value))}
                 placeholder="10-digit Phone Number *"
                 inputMode="numeric"
                 className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ayur-green/30"
