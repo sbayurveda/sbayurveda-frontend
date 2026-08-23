@@ -75,6 +75,45 @@ function round2(n) {
   return Math.round((Number(n) || 0) * 100) / 100;
 }
 
+// The courier rejects any address line over 60 characters — real uploads came
+// back with "Ship To: Address Line 2 exceeding 60 characters".
+const ADDRESS_FIELD_LIMIT = 60;
+
+// Cut at the last comma or space before the limit so a line breaks between
+// address parts rather than mid-word.
+function splitAtBoundary(text, limit) {
+  const value = String(text || "").trim();
+  if (value.length <= limit) return [value, ""];
+  const window = value.slice(0, limit + 1);
+  const cut = Math.max(window.lastIndexOf(", "), window.lastIndexOf(" "));
+  const at = cut > limit * 0.4 ? cut : limit;
+  return [value.slice(0, at).replace(/[,\s]+$/, ""), value.slice(at).replace(/^[,\s]+/, "")];
+}
+
+// Checkout stores the flat/building as address_1 and joins area + landmark into
+// address_2, so address_2 alone regularly ran past 60 characters — and when a
+// customer had typed their whole address into both boxes it also repeated
+// address_1 verbatim. This lays the address across the three fields the courier
+// actually provides (Line 1 / Line 2 / Landmark), dropping that duplicated
+// prefix, so nothing is lost and no single field is over the limit.
+function addressLines(primary, secondary) {
+  const line1Full = String(primary || "").trim();
+  let rest = String(secondary || "").trim();
+
+  if (line1Full && rest.toLowerCase().startsWith(line1Full.toLowerCase())) {
+    rest = rest.slice(line1Full.length).replace(/^[,\s]+/, "");
+  }
+
+  const [line1, line1Overflow] = splitAtBoundary(line1Full, ADDRESS_FIELD_LIMIT);
+  const combinedRest = [line1Overflow, rest].filter(Boolean).join(", ");
+  const [line2, line2Overflow] = splitAtBoundary(combinedRest, ADDRESS_FIELD_LIMIT);
+  const [landmark, dropped] = splitAtBoundary(line2Overflow, ADDRESS_FIELD_LIMIT);
+
+  // `dropped` is text that wouldn't fit in any of the three fields. Removing a
+  // duplicated Line 1 doesn't count — nothing is lost there.
+  return { line1, line2, landmark, dropped };
+}
+
 export const STORE_DEFAULTS = {
   shipperName: "SB Ayurveda",
   addressLine1: "Ground Floor, Barara Road",
@@ -112,6 +151,11 @@ export function validateOrdersForPickup(orders) {
     if (tenDigitPhone(b.phone || s.phone).length !== 10) issues.push("phone isn't 10 digits");
     if (!(s.postcode || b.postcode)) issues.push("no pincode");
     if (!(s.address_1 || b.address_1)) issues.push("no address");
+    // The address is spread across Line 1 / Line 2 / Landmark, each capped at
+    // 60 characters. Only warn when something genuinely won't fit in all three.
+    if (addressLines(s.address_1 || b.address_1, s.address_2 || b.address_2).dropped) {
+      issues.push("address too long — the end will be cut off");
+    }
     if (issues.length) problems.push({ number: order.number, issues });
   }
   return problems;
@@ -146,12 +190,17 @@ function rowValues(order, opts) {
     .filter(Boolean).join(" ").trim();
   const isCod = String(order.paymentMethod || "").toLowerCase().includes("cod");
 
+  const address = addressLines(
+    s.address_1 || b.address_1,
+    s.address_2 || b.address_2
+  );
+
   return [
     order.number,                                   // A  Client Reference ID
-    name,                                           // B  Ship To: Recipient Name
-    s.address_1 || b.address_1 || "",               // C  Address Line 1
-    s.address_2 || b.address_2 || "",               // D  Address Line 2
-    "",                                             // E  Address Landmark
+    name.slice(0, ADDRESS_FIELD_LIMIT),             // B  Ship To: Recipient Name
+    address.line1,                                  // C  Address Line 1
+    address.line2,                                  // D  Address Line 2
+    address.landmark,                               // E  Address Landmark
     s.city || b.city || "",                         // F  City/Town
     normaliseState(s.state || b.state),             // G  State
     s.postcode || b.postcode || "",                 // H  Postal Code
