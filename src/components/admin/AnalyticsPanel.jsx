@@ -166,6 +166,10 @@ function RankedBars({ title, rows, valueKey, format, empty, footer }) {
 
 function PaymentSplit({ payment }) {
   const total = payment.cod.revenue + payment.prepaid.revenue;
+  const totalOrders = payment.cod.orders + payment.prepaid.orders;
+  // Revenue share and order share differ whenever one method carries bigger
+  // baskets, so both are shown rather than leaving the reader to assume.
+  const share = (part, whole) => (whole ? Math.round((part / whole) * 100) : 0);
   const rows = [
     { key: "prepaid", label: "Prepaid", color: SERIES.prepaid, ...payment.prepaid },
     { key: "cod", label: "Cash on delivery", color: SERIES.cod, ...payment.cod },
@@ -191,13 +195,25 @@ function PaymentSplit({ payment }) {
       </div>
 
       {/* legend doubles as the data table — identity never by colour alone */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
+          <span className="w-2 shrink-0" />
+          <span className="flex-1" />
+          <span className="w-24 text-right">Revenue</span>
+          <span className="w-20 text-right">Orders</span>
+        </div>
         {rows.map((r) => (
           <div key={r.key} className="flex items-center gap-2 text-[11px]">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: r.color }} />
-            <span className="text-slate-600 flex-1">{r.label}</span>
-            <span className="text-slate-800 font-semibold">{formatMoney(r.revenue)}</span>
-            <span className="text-slate-400 w-16 text-right">{r.orders} orders</span>
+            <span className="text-slate-600 flex-1 truncate">{r.label}</span>
+            <span className="w-24 text-right">
+              <span className="text-slate-800 font-semibold">{formatMoney(r.revenue)}</span>
+              <span className="text-slate-400 ml-1">{share(r.revenue, total)}%</span>
+            </span>
+            <span className="w-20 text-right">
+              <span className="text-slate-700">{r.orders}</span>
+              <span className="text-slate-400 ml-1">{share(r.orders, totalOrders)}%</span>
+            </span>
           </div>
         ))}
       </div>
