@@ -4,14 +4,14 @@ import {
   RefreshCw, Download, LogOut, Loader2, ChevronLeft, ChevronRight,
   Package, IndianRupee, Clock, AlertCircle,
 } from "lucide-react";
-import { AdminAuthError, clearAdminSession, fetchAdminOrders, getAdminSession } from "../api/adminApi";
+import { AdminAuthError, clearAdminSession, fetchAdminOrders, getAdminSession, updateOrder } from "../api/adminApi";
 import AdminLogin from "../components/admin/AdminLogin";
 import OrderFilters from "../components/admin/OrderFilters";
 import { EMPTY_FILTERS } from "../utils/adminFilters";
 import OrderTable from "../components/admin/OrderTable";
 import OrderDetailDrawer from "../components/admin/OrderDetailDrawer";
 import ExportDialog from "../components/admin/ExportDialog";
-import { customerName, formatMoney, paymentMeta, productSummary } from "../utils/adminFormat";
+import { ORDER_STATUSES, customerName, formatMoney, paymentMeta, productSummary } from "../utils/adminFormat";
 import { useSeo } from "../utils/useSeo";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
@@ -109,6 +109,7 @@ export default function AdminOrders() {
   const [detailOrder, setDetailOrder] = useState(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   // Tracks the newest order id already seen, so a background refresh can tell
   // the difference between "same data" and "a sale just came in".
@@ -229,6 +230,44 @@ export default function AdminOrders() {
     });
   }
 
+  // Splice a saved order back into the list (and the open drawer) so the change
+  // shows immediately instead of waiting for the next poll.
+  function handleOrderUpdated(updated) {
+    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+    setDetailOrder((cur) => (cur && cur.id === updated.id ? updated : cur));
+  }
+
+  async function applyBulkStatus(newStatus) {
+    if (!newStatus || selectedOrders.length === 0 || bulkBusy) return;
+    const targets = selectedOrders.filter((o) => o.status !== newStatus);
+    if (targets.length === 0) {
+      toast("Those orders are already in that status.");
+      return;
+    }
+    setBulkBusy(true);
+    let done = 0;
+    let failed = 0;
+    // Sequential rather than parallel: this writes to the live store, and a
+    // burst of concurrent writes is exactly what the rate limiter should stop.
+    for (const order of targets) {
+      try {
+        const { order: updated } = await updateOrder(order.id, { status: newStatus });
+        handleOrderUpdated(updated);
+        done += 1;
+      } catch (err) {
+        if (err instanceof AdminAuthError) {
+          handleAuthError(err);
+          setBulkBusy(false);
+          return;
+        }
+        failed += 1;
+      }
+    }
+    setBulkBusy(false);
+    if (failed) toast.error(`Updated ${done}, but ${failed} failed.`);
+    else toast.success(`Updated ${done} order${done > 1 ? "s" : ""}`);
+  }
+
   function handleSort(key) {
     setSort((prev) =>
       prev.key === key ? { key, dir: prev.dir === "asc" ? "desc" : "asc" } : { key, dir: "desc" }
@@ -336,6 +375,41 @@ export default function AdminOrders() {
           </label>
         </div>
 
+        {selectedIds.size > 0 && (
+          <div className="bg-ayur-green/5 border border-ayur-green/25 rounded-xl px-4 py-2.5 flex flex-wrap items-center gap-3">
+            <span className="text-sm font-semibold text-ayur-green-dark">
+              {selectedOrders.length} selected
+            </span>
+            <span className="text-xs text-slate-500">Set status to</span>
+            <select
+              defaultValue=""
+              disabled={bulkBusy}
+              onChange={(e) => {
+                const v = e.target.value;
+                e.target.value = "";
+                applyBulkStatus(v);
+              }}
+              className="border border-slate-200 rounded-lg px-2 py-1.5 text-sm bg-white disabled:opacity-50"
+            >
+              <option value="" disabled>Choose…</option>
+              {ORDER_STATUSES.filter((s) => s.value !== "any").map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+            {bulkBusy && (
+              <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                <Loader2 size={13} className="animate-spin" /> Updating…
+              </span>
+            )}
+            <button
+              onClick={() => setExportOpen(true)}
+              className="ml-auto text-xs font-semibold text-ayur-green hover:underline"
+            >
+              Export these {selectedOrders.length}
+            </button>
+          </div>
+        )}
+
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">{error}</div>
         )}
@@ -372,7 +446,12 @@ export default function AdminOrders() {
         )}
       </main>
 
-      <OrderDetailDrawer order={detailOrder} onClose={() => setDetailOrder(null)} onAuthError={handleAuthError} />
+      <OrderDetailDrawer
+        order={detailOrder}
+        onClose={() => setDetailOrder(null)}
+        onAuthError={handleAuthError}
+        onUpdated={handleOrderUpdated}
+      />
       <ExportDialog open={exportOpen} orders={selectedOrders} onClose={() => setExportOpen(false)} />
     </div>
   );

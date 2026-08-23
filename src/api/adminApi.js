@@ -75,3 +75,35 @@ export async function fetchAdminOrders({ page = 1, perPage = 50, after, before, 
 export async function fetchOrderNotes(orderId) {
   return adminGet(`/api/admin/orders/${orderId}/notes`);
 }
+
+async function adminSend(path, method, body) {
+  const session = getAdminSession();
+  if (!session) throw new AdminAuthError("Your session has expired. Please sign in again.");
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.token}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+
+  if (res.status === 401) {
+    clearAdminSession();
+    throw new AdminAuthError(data.error || "Your session has expired. Please sign in again.");
+  }
+  if (!res.ok) throw new Error(data.error || "Couldn't save that change.");
+  return data;
+}
+
+// Pass only the fields being changed. For tracking, an omitted field is left
+// alone and an empty string clears it.
+export async function updateOrder(orderId, { status, tracking } = {}) {
+  return adminSend(`/api/admin/orders/${orderId}`, "PATCH", { status, tracking });
+}
+
+export async function addOrderNote(orderId, note, { customerNote = false } = {}) {
+  return adminSend(`/api/admin/orders/${orderId}/notes`, "POST", { note, customerNote });
+}

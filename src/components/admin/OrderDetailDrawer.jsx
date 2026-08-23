@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X, ExternalLink, Loader2, StickyNote } from "lucide-react";
 import { fetchOrderNotes, AdminAuthError } from "../../api/adminApi";
 import { sanitizeDescriptionHtml } from "../../utils/sanitizeHtml";
+import OrderEditPanel from "./OrderEditPanel";
 import {
   customerName, deliveryMeta, formatAddress, formatDateTime, formatMoney,
   isCod, paymentMeta, statusMeta,
@@ -37,7 +38,7 @@ function TotalRow({ label, value, strong, negative }) {
   );
 }
 
-export default function OrderDetailDrawer({ order, onClose, onAuthError }) {
+export default function OrderDetailDrawer({ order, onClose, onAuthError, onUpdated }) {
   const [notes, setNotes] = useState(null);
   const [notesError, setNotesError] = useState("");
 
@@ -94,6 +95,13 @@ export default function OrderDetailDrawer({ order, onClose, onAuthError }) {
                 <X size={18} />
               </button>
             </div>
+
+            <OrderEditPanel
+              order={order}
+              onUpdated={onUpdated}
+              onAuthError={onAuthError}
+              onNoteAdded={(created) => setNotes((prev) => [created, ...(prev || [])])}
+            />
 
             <Section title="Customer">
               <Row label="Name" value={customerName(order)} />
