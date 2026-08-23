@@ -185,7 +185,14 @@ export default function Checkout() {
 
     // Online payment (UPI/Card) via Razorpay
     try {
-      const pay = await createPayment({ items: cartItems, couponCode: appliedCoupon?.code });
+      const pay = await createPayment({
+        items: cartItems,
+        couponCode: appliedCoupon?.code,
+        // Sent up front so the server can still finish the order from
+        // Razorpay's webhook if the customer never returns from their UPI app.
+        customer,
+        attribution: getAttribution(),
+      });
       const rzp = new window.Razorpay({
         key: pay.keyId,
         amount: Math.round(pay.amount * 100),
