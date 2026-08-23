@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /checkout
 Disallow: /wishlist
+Disallow: /admin
 
 Sitemap: https://sbayurveda.com/sitemap.xml
