@@ -76,6 +76,13 @@ export async function fetchOrderNotes(orderId) {
   return adminGet(`/api/admin/orders/${orderId}/notes`);
 }
 
+// Aggregated on the server across every order in the range — deliberately not
+// computed from the loaded table page, which would report "revenue among the
+// last 100 orders" while calling it revenue.
+export async function fetchAnalytics({ from, to }) {
+  return adminGet(`/api/admin/analytics?from=${from}&to=${to}`);
+}
+
 async function adminSend(path, method, body) {
   const session = getAdminSession();
   if (!session) throw new AdminAuthError("Your session has expired. Please sign in again.");

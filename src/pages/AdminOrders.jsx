@@ -11,6 +11,7 @@ import { EMPTY_FILTERS } from "../utils/adminFilters";
 import OrderTable from "../components/admin/OrderTable";
 import OrderDetailDrawer from "../components/admin/OrderDetailDrawer";
 import ExportDialog from "../components/admin/ExportDialog";
+import AnalyticsPanel from "../components/admin/AnalyticsPanel";
 import { ORDER_STATUSES, customerName, formatMoney, paymentMeta, productSummary } from "../utils/adminFormat";
 import { useSeo } from "../utils/useSeo";
 
@@ -332,6 +333,8 @@ export default function AdminOrders() {
       </header>
 
       <main className="max-w-[1600px] mx-auto px-4 py-4 space-y-4">
+        <AnalyticsPanel onAuthError={handleAuthError} />
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard icon={Package} label="Orders shown" value={stats.count} tone="blue" />
           <StatCard icon={IndianRupee} label="Value shown" value={formatMoney(stats.revenue)} tone="green" />
