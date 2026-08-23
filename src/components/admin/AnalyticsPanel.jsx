@@ -244,8 +244,30 @@ function Fulfilment({ f }) {
   );
 }
 
+const OPEN_KEY = "sba-admin-analytics-open";
+
 export default function AnalyticsPanel({ onAuthError }) {
-  const [open, setOpen] = useState(true);
+  // Expanded the first time so it's discoverable, but the choice sticks — this
+  // page is mostly used for working through orders, and someone who collapses
+  // the panel shouldn't have to collapse it again every visit.
+  const [open, setOpen] = useState(() => {
+    try {
+      return localStorage.getItem(OPEN_KEY) !== "closed";
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleOpen = useCallback(() => {
+    setOpen((wasOpen) => {
+      try {
+        localStorage.setItem(OPEN_KEY, wasOpen ? "closed" : "open");
+      } catch {
+        // Storage unavailable — the panel still toggles for this session.
+      }
+      return !wasOpen;
+    });
+  }, []);
   const [rangeKey, setRangeKey] = useState("30");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -287,7 +309,7 @@ export default function AnalyticsPanel({ onAuthError }) {
   return (
     <section className="bg-white border border-slate-200 rounded-xl">
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         className="w-full flex items-center gap-2 px-4 py-2.5 text-left"
       >
         <BarChart3 size={15} className="text-ayur-green" />
