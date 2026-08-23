@@ -136,17 +136,28 @@ export default function AdminOrders() {
         };
 
         const collected = [];
+        const seen = new Set();
         let pageNum = 1;
         let availableCount = 0;
-        // WooCommerce caps per_page at 100, so fill the working set in chunks.
+
+        // WooCommerce caps per_page at 100, so the working set is filled in
+        // chunks. perPage has to stay constant across those requests: page
+        // numbers are relative to the page size, so shrinking it for a final
+        // partial chunk makes "page 3" mean a different, overlapping slice and
+        // the same orders come back two or three times. Fetch whole pages and
+        // trim at the end instead, with a seen-set as a belt-and-braces guard.
         while (collected.length < loadLimit) {
-          const perPage = Math.min(100, loadLimit - collected.length);
-          const data = await fetchAdminOrders({ ...base, page: pageNum, perPage });
+          const data = await fetchAdminOrders({ ...base, page: pageNum, perPage: 100 });
           availableCount = data.total || 0;
-          collected.push(...(data.orders || []));
+          for (const order of data.orders || []) {
+            if (seen.has(order.id)) continue;
+            seen.add(order.id);
+            collected.push(order);
+          }
           if (!data.orders?.length || pageNum >= (data.totalPages || 1)) break;
           pageNum += 1;
         }
+        collected.length = Math.min(collected.length, loadLimit);
 
         const newest = collected[0]?.id ?? null;
         if (silent && newest && newestSeenRef.current && newest !== newestSeenRef.current) {

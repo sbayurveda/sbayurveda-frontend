@@ -20,6 +20,7 @@ import { getDeliveryEstimate } from "../utils/pincode";
 import { isBridgeConfigured, createPayment, verifyPayment, placeCodOrder } from "../api/checkoutBridge";
 import { useSeo } from "../utils/useSeo";
 import { capPhoneInput, cleanPhone } from "../utils/phone";
+import { getAttribution } from "../utils/attribution";
 
 const PAYMENT_METHODS = [
   { id: "online", label: "Pay Online — UPI / Card / Netbanking", icon: Smartphone },
@@ -172,7 +173,7 @@ export default function Checkout() {
 
     if (payment === "cod") {
       try {
-        const result = await placeCodOrder({ items: cartItems, customer, couponCode: appliedCoupon?.code });
+        const result = await placeCodOrder({ items: cartItems, customer, couponCode: appliedCoupon?.code, attribution: getAttribution() });
         finishOrder(String(result.orderNumber || result.orderId), result.total);
       } catch (err) {
         toast.error(err.message || "Could not place your order. Please try again.");
@@ -196,7 +197,7 @@ export default function Checkout() {
         theme: { color: "#005F33" },
         handler: async (response) => {
           try {
-            const result = await verifyPayment({ ...response, customer, items: cartItems, couponCode: appliedCoupon?.code });
+            const result = await verifyPayment({ ...response, customer, items: cartItems, couponCode: appliedCoupon?.code, attribution: getAttribution() });
             finishOrder(String(result.orderNumber || result.orderId), result.total);
           } catch (err) {
             toast.error(err.message || "Payment succeeded but we couldn't record your order. Please contact us.");

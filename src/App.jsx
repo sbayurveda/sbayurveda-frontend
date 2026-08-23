@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { useCatalogStore } from "./context/catalogStore";
+import { initAttribution } from "./utils/attribution";
 import CatalogStatusBanner from "./components/CatalogStatusBanner";
 import ScrollToTop from "./components/ScrollToTop";
 import Header from "./components/Header";
@@ -61,6 +62,7 @@ function App() {
   const fetchCatalog = useCatalogStore((s) => s.fetchCatalog);
 
   useEffect(() => {
+    initAttribution();
     fetchCatalog();
   }, [fetchCatalog]);
 
