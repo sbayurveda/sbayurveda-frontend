@@ -17,19 +17,28 @@ const SERIES = {
 };
 
 const RANGES = [
-  { key: "7", label: "7 days" },
-  { key: "30", label: "30 days" },
-  { key: "90", label: "90 days" },
+  { key: "1", label: "Today", compare: "vs yesterday" },
+  { key: "7", label: "7 days", compare: "vs previous 7 days" },
+  { key: "30", label: "30 days", compare: "vs previous 30 days" },
+  { key: "90", label: "90 days", compare: "vs previous 90 days" },
 ];
 
-function isoDaysAgo(n) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
-}
+// Order timestamps come from WooCommerce in the store's own timezone, so the
+// ranges have to be built in that timezone too. Using toISOString() here meant
+// UTC: after 6:30pm IST the UTC date has already rolled over, so "Today" asked
+// for yesterday and showed yesterday's takings. en-CA formats as YYYY-MM-DD.
+const STORE_TIMEZONE = "Asia/Kolkata";
+const storeDayFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: STORE_TIMEZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+function storeDayIso(daysAgo = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return storeDayFormatter.format(d);
 }
 
 function pctChange(now, before) {
@@ -96,7 +105,9 @@ function TrendChart({ trend }) {
                 y={34 - h}
                 width={barW * 0.7}
                 height={Math.max(h, d.revenue > 0 ? 0.6 : 0)}
-                rx={barW * 0.25}
+                // Capped so the "Today" view's single wide bar keeps a normal
+                // rounded end instead of turning into a lozenge.
+                rx={Math.min(barW * 0.25, 1)}
                 fill={SERIES.single}
                 opacity={isHover ? 1 : 0.82}
                 onMouseEnter={() => setHover(d)}
@@ -280,8 +291,8 @@ export default function AnalyticsPanel({ onAuthError }) {
     setError("");
     try {
       const result = await fetchAnalytics({
-        from: isoDaysAgo(Number(rangeKey) - 1),
-        to: todayIso(),
+        from: storeDayIso(Number(rangeKey) - 1),
+        to: storeDayIso(0),
       });
       setData(result);
     } catch (err) {
@@ -344,7 +355,7 @@ export default function AnalyticsPanel({ onAuthError }) {
             ))}
             {data && (
               <span className="text-[11px] text-slate-400 ml-1">
-                vs previous {rangeKey} days
+                {RANGES.find((r) => r.key === rangeKey)?.compare}
               </span>
             )}
           </div>
