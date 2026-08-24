@@ -214,7 +214,14 @@ function rowValues(order, opts) {
     Number(pkg.weightKg),                           // P  Gross Weight (KG)
     order.number,                                   // Q  Invoice Number
     formatDate(order.dateCreated),                  // R  Invoice Date
-    round2(order.itemsTotal),                       // S  Product Value (ex tax)
+    // Product Value + the three tax columns are the only money the courier
+    // sees — the template has no separate field for the COD amount, shipping or
+    // any fee. Declaring only the goods value meant a COD order for Rs515 was
+    // presented as Rs425, so the agent would collect Rs90 too little on every
+    // one of them. Everything the customer owes except tax goes here, leaving
+    // the tax columns holding the real GST from the invoice, so the four
+    // columns add up to exactly what has to be collected.
+    round2(Number(order.total || 0) - Number(order.totalTax || 0)), // S  Product Value
     round2(order.cgst),                             // T  CGST Value
     round2(order.sgst),                             // U  SGST Value
     round2(order.igst),                             // V  IGST Value
