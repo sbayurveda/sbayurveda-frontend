@@ -170,6 +170,43 @@ export const PACKAGE_DEFAULTS = {
   shippingService: "STANDARD",
 };
 
+// Splits everything the customer owes into a value and a tax figure, keeping
+// the order's own tax rate.
+//
+// The courier only sees Product Value plus the three tax columns — the template
+// has no field for shipping, fees or a COD amount — so those four have to add
+// up to the full collectable or the agent collects too little. Rather than
+// dumping shipping and fees into Product Value untaxed, the order's effective
+// rate is applied across the whole amount, so the declared split stays in the
+// same proportion as the invoice. The tax components are rounded first and
+// Product Value takes the remainder, which keeps the four columns summing to
+// the exact total with no rounding drift.
+function collectableAmounts(order) {
+  const gross = Number(order.total || 0);
+  const goods = Number(order.itemsTotal || 0);
+  const tax = Number(order.totalTax || 0);
+  const cgst = Number(order.cgst || 0);
+  const sgst = Number(order.sgst || 0);
+  const igst = Number(order.igst || 0);
+
+  const rate = goods > 0 ? tax / goods : 0;
+  const taxTotal = rate > 0 ? gross - gross / (1 + rate) : 0;
+
+  // Keep whatever CGST/SGST vs IGST mix the order actually had.
+  const componentSum = cgst + sgst + igst;
+  const share = (component) => (componentSum ? round2((taxTotal * component) / componentSum) : 0);
+  const outCgst = share(cgst);
+  const outSgst = share(sgst);
+  const outIgst = share(igst);
+
+  return {
+    productValue: round2(gross - (outCgst + outSgst + outIgst)),
+    cgst: outCgst,
+    sgst: outSgst,
+    igst: outIgst,
+  };
+}
+
 function productDescription(order) {
   const parts = (order.lineItems || []).map((i) => `${i.name} x${i.qty}`);
   const joined = parts.join(", ");
@@ -194,6 +231,7 @@ function rowValues(order, opts) {
     s.address_1 || b.address_1,
     s.address_2 || b.address_2
   );
+  const amounts = collectableAmounts(order);
 
   return [
     order.number,                                   // A  Client Reference ID
@@ -214,17 +252,10 @@ function rowValues(order, opts) {
     Number(pkg.weightKg),                           // P  Gross Weight (KG)
     order.number,                                   // Q  Invoice Number
     formatDate(order.dateCreated),                  // R  Invoice Date
-    // Product Value + the three tax columns are the only money the courier
-    // sees — the template has no separate field for the COD amount, shipping or
-    // any fee. Declaring only the goods value meant a COD order for Rs515 was
-    // presented as Rs425, so the agent would collect Rs90 too little on every
-    // one of them. Everything the customer owes except tax goes here, leaving
-    // the tax columns holding the real GST from the invoice, so the four
-    // columns add up to exactly what has to be collected.
-    round2(Number(order.total || 0) - Number(order.totalTax || 0)), // S  Product Value
-    round2(order.cgst),                             // T  CGST Value
-    round2(order.sgst),                             // U  SGST Value
-    round2(order.igst),                             // V  IGST Value
+    amounts.productValue,                           // S  Product Value
+    amounts.cgst,                                   // T  CGST Value
+    amounts.sgst,                                   // U  SGST Value
+    amounts.igst,                                   // V  IGST Value
     isCod ? "YES" : "NO",                           // W  CollectOnDelivery
     pkg.shippingService,                            // X  Shipping Service
     opts.pickupDate ? formatDate(opts.pickupDate) : "", // Y  Pickup Date
