@@ -16,7 +16,7 @@ import toast from "react-hot-toast";
 import { useStore } from "../context/store";
 import { useCart } from "../context/useCart";
 import { detectCurrentLocation } from "../utils/geolocation";
-import { getDeliveryEstimate } from "../utils/pincode";
+import { getDeliveryEstimate, DELIVERY_ZONES, zoneForState } from "../utils/pincode";
 import { isBridgeConfigured, createPayment, verifyPayment, placeCodOrder } from "../api/checkoutBridge";
 import { useSeo } from "../utils/useSeo";
 import { capPhoneInput, cleanPhone } from "../utils/phone";
@@ -259,6 +259,11 @@ export default function Checkout() {
     );
   }
 
+  // Highlights the customer's own row in the delivery-timeline list. The pincode
+  // lookup is authoritative; the state dropdown is the fallback for someone who
+  // filled the address in before the pincode resolved.
+  const activeZoneKey = deliveryEstimate?.zoneKey || zoneForState(form.state)?.key || null;
+
   return (
     <div className="container-px max-w-6xl mx-auto py-8">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Secure Checkout</h1>
@@ -360,6 +365,36 @@ export default function Checkout() {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-card">
+            <h2 className="font-semibold text-gray-800 mb-1">Delivery Timelines</h2>
+            <p className="text-xs text-gray-500 mb-3">
+              Business days from dispatch. Your region is highlighted once we have your pincode or state.
+            </p>
+            <ul className="space-y-1.5">
+              {DELIVERY_ZONES.map((zone) => {
+                const mine = zone.key === activeZoneKey;
+                return (
+                  <li
+                    key={zone.key}
+                    className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 rounded-lg px-3 py-2 text-sm ${
+                      mine
+                        ? "bg-ayur-green/10 text-ayur-green-dark font-medium"
+                        : "text-gray-600"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {mine && <Truck size={13} />}
+                      {zone.label}
+                    </span>
+                    <span>
+                      Delivery expected in {zone.days.min}-{zone.days.max} days
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
 
           <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-card">
