@@ -89,7 +89,19 @@ export default function OrderDetailDrawer({ order, onClose, onAuthError, onUpdat
                       {m.label}
                     </span>
                   ))}
+                  {order.needsReview && (
+                    <span className="px-2 py-0.5 rounded-full border text-[11px] font-bold bg-red-50 text-red-700 border-red-300">
+                      ⚠ Needs review
+                    </span>
+                  )}
                 </div>
+                {order.needsReview && (
+                  <p className="mt-2 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5 leading-relaxed">
+                    Paid, but the delivery address never reached us — this order was rebuilt from the
+                    payment record. Call the customer for their address before dispatch, then set the
+                    status to Processing.
+                  </p>
+                )}
               </div>
               <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-full" aria-label="Close">
                 <X size={18} />

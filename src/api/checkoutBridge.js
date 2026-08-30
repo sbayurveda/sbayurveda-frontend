@@ -28,23 +28,24 @@ async function getJson(path) {
   return data;
 }
 
-export function createPayment({ items, couponCode }) {
-  return postJson("/api/create-payment", { items, couponCode });
+// These forward whatever they're given rather than naming each field.
+//
+// They used to destructure a fixed list, which silently dropped anything added
+// later: `customer` and `attribution` were being passed in from Checkout but
+// never left the browser. That meant the server had no delivery address saved
+// when a payment started, so Razorpay's webhook could not create the order for
+// a customer who never returned from their UPI app — the exact failure the
+// webhook exists to prevent — and order attribution was never recorded either.
+export function createPayment(payload) {
+  return postJson("/api/create-payment", payload);
 }
 
-export function verifyPayment({ razorpay_order_id, razorpay_payment_id, razorpay_signature, customer, items, couponCode }) {
-  return postJson("/api/verify-payment", {
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature,
-    customer,
-    items,
-    couponCode,
-  });
+export function verifyPayment(payload) {
+  return postJson("/api/verify-payment", payload);
 }
 
-export function placeCodOrder({ items, customer, couponCode }) {
-  return postJson("/api/cod-order", { items, customer, couponCode });
+export function placeCodOrder(payload) {
+  return postJson("/api/cod-order", payload);
 }
 
 // Real, current status of an order straight from WooCommerce — used to keep

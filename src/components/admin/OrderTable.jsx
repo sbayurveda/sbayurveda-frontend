@@ -128,7 +128,17 @@ export default function OrderTable({ orders, selectedIds, onToggle, onToggleAll,
                   <td className="px-3 py-2.5 text-right font-semibold text-slate-900 whitespace-nowrap">{formatMoney(order.total, order.currency)}</td>
                   <td className="px-3 py-2.5 whitespace-nowrap text-slate-600">{order.paymentMethodTitle || "—"}</td>
                   <td className="px-3 py-2.5"><Badge meta={paymentMeta(order)} /></td>
-                  <td className="px-3 py-2.5"><Badge meta={statusMeta(order.status)} /></td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex flex-col gap-1">
+                      <Badge meta={statusMeta(order.status)} />
+                      {/* Paid, but the address never arrived — must not be dispatched as-is. */}
+                      {order.needsReview && (
+                        <span className="inline-block px-2 py-0.5 rounded-full border text-[11px] font-bold whitespace-nowrap bg-red-50 text-red-700 border-red-300">
+                          ⚠ Needs review
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-3 py-2.5"><Badge meta={deliveryMeta(order)} /></td>
                   <td className="px-3 py-2.5 whitespace-nowrap text-slate-500 font-mono text-[11px]">{order.transactionId || "—"}</td>
                   <td className="px-3 py-2.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
