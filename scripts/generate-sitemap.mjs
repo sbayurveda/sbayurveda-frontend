@@ -22,7 +22,6 @@ const STATIC_ROUTES = [
   "/category/general",
   "/offers",
   "/track-order",
-  "/upload-prescription",
   "/policy/terms",
   "/policy/refund",
   "/policy/2x-guarantee",
