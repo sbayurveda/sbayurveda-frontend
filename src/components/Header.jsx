@@ -6,13 +6,11 @@ import {
   ShoppingCart,
   MessageCircle,
   Tag,
-  FileText,
   Menu,
   X,
   ChevronDown,
   UserCircle,
   PackageSearch,
-  Stethoscope,
 } from "lucide-react";
 import { useStore } from "../context/store";
 import { useCatalogStore } from "../context/catalogStore";
@@ -20,7 +18,6 @@ import { searchProducts } from "../utils/searchProducts";
 import { healthConcerns } from "../data/categories";
 import { whatsappForQuery } from "../utils/whatsapp";
 import { siteInfo } from "../data/siteInfo";
-import DoctorAppointmentModal from "./DoctorAppointmentModal";
 
 export default function Header() {
   const navigate = useNavigate();
@@ -28,7 +25,6 @@ export default function Header() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [concernOpen, setConcernOpen] = useState(false);
-  const [doctorModalOpen, setDoctorModalOpen] = useState(false);
   const wrapRef = useRef(null);
   const concernRef = useRef(null);
 
@@ -150,12 +146,6 @@ export default function Header() {
           >
             <MessageCircle size={15} /> Order on WhatsApp
           </a>
-          <button
-            onClick={() => setDoctorModalOpen(true)}
-            className="flex items-center gap-1.5 text-xs font-semibold bg-ayur-cream text-ayur-green px-3 py-2 rounded-full hover:bg-amber-100"
-          >
-            <Stethoscope size={15} /> Ask a Doctor
-          </button>
           <Link
             to="/offers"
             className="flex items-center gap-1.5 text-xs font-semibold text-ayur-green px-2 py-2 hover:underline"
@@ -285,9 +275,6 @@ export default function Header() {
           <Link to="/policy/contact" className="hover:text-ayur-green whitespace-nowrap">
             Contact Us
           </Link>
-          <Link to="/upload-prescription" className="hover:text-ayur-green whitespace-nowrap">
-            Upload Prescription
-          </Link>
         </div>
       </nav>
 
@@ -309,9 +296,6 @@ export default function Header() {
             </Link>
             <Link to="/policy/contact" onClick={() => setMobileMenuOpen(false)} className="py-2.5 hover:text-ayur-green">
               Contact Us
-            </Link>
-            <Link to="/upload-prescription" onClick={() => setMobileMenuOpen(false)} className="py-2.5 hover:text-ayur-green">
-              Upload Prescription
             </Link>
           </nav>
 
@@ -347,22 +331,6 @@ export default function Header() {
             >
               <MessageCircle size={15} /> WhatsApp
             </a>
-            <button
-              onClick={() => {
-                setDoctorModalOpen(true);
-                setMobileMenuOpen(false);
-              }}
-              className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold bg-ayur-cream text-ayur-green px-3 py-2 rounded-full"
-            >
-              <Stethoscope size={15} /> Doctor
-            </button>
-            <Link
-              to="/upload-prescription"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold bg-gray-50 text-gray-700 px-3 py-2 rounded-full"
-            >
-              <FileText size={15} /> Rx
-            </Link>
             <Link
               to="/track-order"
               onClick={() => setMobileMenuOpen(false)}
@@ -374,7 +342,6 @@ export default function Header() {
         </div>
       )}
 
-      <DoctorAppointmentModal open={doctorModalOpen} onClose={() => setDoctorModalOpen(false)} />
     </header>
   );
 }

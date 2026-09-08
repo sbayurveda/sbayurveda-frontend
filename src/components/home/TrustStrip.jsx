@@ -1,10 +1,10 @@
-import { ShieldCheck, Tag, Truck, Stethoscope } from "lucide-react";
+import { ShieldCheck, Tag, Truck, PackageCheck } from "lucide-react";
 
 const items = [
   { icon: ShieldCheck, title: "100% Genuine Products", subtitle: "Sourced from authorized brand distributors" },
   { icon: Tag, title: "Lowest Price Guaranteed", subtitle: "Find it cheaper? Get 2X refund" },
   { icon: Truck, title: "Express Doorstep Delivery", subtitle: "Same day dispatch, COD available" },
-  { icon: Stethoscope, title: "Free Doctor Consultation", subtitle: "Chat with our Ayurvedic experts" },
+  { icon: PackageCheck, title: "Easy Returns", subtitle: "Sealed, unused items within 7 days" },
 ];
 
 export default function TrustStrip() {

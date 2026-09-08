@@ -55,9 +55,3 @@ export function placeCodOrder(payload) {
 export function getOrderStatus(orderId, contact) {
   return getJson(`/api/order/${encodeURIComponent(orderId)}?contact=${encodeURIComponent(contact)}`);
 }
-
-// Emails the store directly (prescription uploads, doctor appointment
-// requests) instead of relying on the customer's own WhatsApp opening.
-export function sendNotification({ subject, lines }) {
-  return postJson("/api/notify", { subject, lines });
-}

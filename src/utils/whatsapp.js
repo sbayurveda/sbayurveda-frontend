@@ -6,6 +6,6 @@ export function buildWhatsAppLink(message) {
 
 export function whatsappForQuery() {
   return buildWhatsAppLink(
-    "Hi SB Ayurveda! I'd like a free Ayurvedic doctor consultation / have a query about a product."
+    "Hi SB Ayurveda! I have a query about a product."
   );
 }

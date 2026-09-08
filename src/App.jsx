@@ -20,7 +20,6 @@ import Offers from "./pages/Offers";
 import Checkout from "./pages/Checkout";
 import PolicyPage from "./pages/PolicyPage";
 import TrackOrder from "./pages/TrackOrder";
-import UploadPrescription from "./pages/UploadPrescription";
 import NotFound from "./pages/NotFound";
 
 // Staff-only and never linked from the storefront, so it's split into its own
@@ -46,7 +45,6 @@ function StorefrontLayout() {
           <Route path="/offers" element={<Offers />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/track-order" element={<TrackOrder />} />
-          <Route path="/upload-prescription" element={<UploadPrescription />} />
           <Route path="/policy/:policyId" element={<PolicyPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
