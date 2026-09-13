@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Loader2, Save, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import { updateOrder, addOrderNote, AdminAuthError } from "../../api/adminApi";
@@ -49,18 +49,6 @@ export default function OrderEditPanel({ order, onUpdated, onAuthError, onNoteAd
   const [notifyCustomer, setNotifyCustomer] = useState(false);
   const [busy, setBusy] = useState("");
 
-  // Re-seed the form whenever a different order is opened.
-  useEffect(() => {
-    setStatus(order.status);
-    setPickedUp(Boolean(order.pickedUp));
-    setCarrier(order.carrierName || "");
-    setCode(order.trackingCode || "");
-    setUrl(order.trackingUrl || "");
-    setPickUpDate((order.pickUpDate || "").slice(0, 10));
-    setNote("");
-    setNotifyCustomer(false);
-  }, [order]);
-
   const statusChanged = status !== order.status;
   const trackingChanged =
     pickedUp !== Boolean(order.pickedUp) ||
@@ -101,27 +89,62 @@ export default function OrderEditPanel({ order, onUpdated, onAuthError, onNoteAd
   // Status and courier details go up together in one request. Saving them
   // separately meant two WordPress round trips — on this host that is the
   // difference between roughly two seconds and four.
-  const saveAll = () =>
-    run("save", async () => {
-      const payload = {};
-      if (statusChanged) payload.status = status;
-      if (trackingChanged) {
-        payload.tracking = {
-          pickedUp,
-          carrierName: carrier,
-          trackingCode: code,
-          carrierUrl: url,
-          pickUpDate,
-        };
-      }
-      const { order: updated } = await updateOrder(order.id, payload);
-      onUpdated(updated);
+  //
+  // The remaining wait is WordPress booting on shared hosting, and no amount of
+  // work here removes it. What it does remove is staring at a spinner: the row
+  // and the drawer update the moment the button is pressed, and the server's
+  // answer is reconciled in behind it. If the save fails the optimistic copy is
+  // rolled back to exactly what the server still holds, so a failure can never
+  // leave the screen claiming something that isn't true.
+  const saveAll = () => {
+    if (busy) return;
 
-      const parts = [];
-      if (statusChanged) parts.push(SETTABLE_STATUSES.find((s) => s.value === status)?.label);
-      if (trackingChanged) parts.push("tracking");
-      toast.success(`Order #${order.number} — ${parts.filter(Boolean).join(" + ")} saved`);
+    const payload = {};
+    if (statusChanged) payload.status = status;
+    if (trackingChanged) {
+      payload.tracking = {
+        pickedUp,
+        carrierName: carrier,
+        trackingCode: code,
+        carrierUrl: url,
+        pickUpDate,
+      };
+    }
+
+    const parts = [];
+    if (statusChanged) parts.push(SETTABLE_STATUSES.find((s) => s.value === status)?.label);
+    if (trackingChanged) parts.push("tracking");
+    const summary = `Order #${order.number} — ${parts.filter(Boolean).join(" + ")}`;
+
+    const before = order;
+    const optimistic = {
+      ...order,
+      ...(statusChanged ? { status } : {}),
+      ...(trackingChanged
+        ? {
+            pickedUp,
+            carrierName: carrier,
+            trackingCode: code,
+            trackingUrl: url,
+            pickUpDate,
+          }
+        : {}),
+    };
+    onUpdated(optimistic);
+
+    return run("save", async () => {
+      try {
+        const { order: updated } = await updateOrder(order.id, payload);
+        // The server's copy wins — it may have normalised a field, or applied a
+        // status WooCommerce overrode.
+        onUpdated(updated);
+        toast.success(`${summary} saved`);
+      } catch (err) {
+        onUpdated(before);
+        throw err;
+      }
     });
+  };
 
   const submitNote = () =>
     run("note", async () => {

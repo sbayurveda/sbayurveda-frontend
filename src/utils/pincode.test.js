@@ -2,7 +2,7 @@
 // commitment, so the risk worth testing is a state landing in the wrong zone —
 // quoting a Chennai address the 3-4 day North band is a promise we can't keep.
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { getDeliveryEstimate, zoneForState, DELIVERY_ZONES } from "./pincode";
 
 function mockPincode(state, city = "Somewhere") {

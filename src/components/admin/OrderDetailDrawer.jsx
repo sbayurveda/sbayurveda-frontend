@@ -109,6 +109,11 @@ export default function OrderDetailDrawer({ order, onClose, onAuthError, onUpdat
             </div>
 
             <OrderEditPanel
+              // Remounting on a different order re-seeds the form for free.
+              // Keyed on the id, not the object: the same order comes back as
+              // a new object on every save, and remounting then would wipe a
+              // half-typed tracking number.
+              key={order.id}
               order={order}
               onUpdated={onUpdated}
               onAuthError={onAuthError}
