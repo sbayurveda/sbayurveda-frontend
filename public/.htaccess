@@ -15,13 +15,42 @@
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
-# Cache static assets aggressively
+# Caching.
+#
+# index.html must never be held by a browser. It is the only file that names
+# the current bundle, so a stale copy pins a visitor to whichever build they
+# first loaded: the old bundle is still on disk and cached for a year, so the
+# previous version of the site keeps working perfectly and a deploy appears to
+# have done nothing. Nothing was setting a cache header on HTML at all, which
+# left browsers free to guess — and they guess "cache it".
+#
+# Everything under /assets/ carries a content hash in its filename, so a changed
+# file is a different URL. Those are safe to keep forever.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html)$">
+    Header set Cache-Control "no-cache, must-revalidate, max-age=0"
+  </FilesMatch>
+
+  <FilesMatch "\.(xml|txt)$">
+    Header set Cache-Control "public, max-age=3600"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Hashed build output only — a new build means a new filename.
+  <FilesMatch "-[A-Za-z0-9_-]{8,}\.(js|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+
+# Static media keeps the long expiry it already had.
 <IfModule mod_expires.c>
   ExpiresActive On
-  ExpiresByType text/css "access plus 1 year"
-  ExpiresByType application/javascript "access plus 1 year"
   ExpiresByType image/png "access plus 1 year"
   ExpiresByType image/jpg "access plus 1 year"
   ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
   ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresDefault "access plus 1 hour"
 </IfModule>
