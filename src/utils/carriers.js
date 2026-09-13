@@ -20,7 +20,14 @@ export const CARRIERS = [
     // Confirmed against real orders already in this store.
     trackingUrl: (code) => `https://www.delhivery.com/track/package/${encodeURIComponent(code)}`,
   },
-  { id: "amazon", name: "Amazon Shipping", api: "planned" },
+  {
+    id: "amazon",
+    name: "Amazon Shipping",
+    // Format taken from a real Amazon consignment for this store:
+    // https://track.amazon.in/tracking/372225471072
+    trackingUrl: (code) => `https://track.amazon.in/tracking/${encodeURIComponent(code)}`,
+    api: "planned",
+  },
   { id: "xpressbees", name: "XpressBees" },
   { id: "bluedart", name: "Blue Dart" },
   { id: "dtdc", name: "DTDC" },

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ShieldCheck,
@@ -26,6 +26,12 @@ const PAYMENT_METHODS = [
   { id: "online", label: "Pay Online — UPI / Card / Netbanking", icon: Smartphone },
   { id: "cod", label: "Cash on Delivery", icon: Wallet },
 ];
+
+// Cash on Delivery is withdrawn above this order value. High-value COD is where
+// the refusal losses hurt most — the parcel travels twice and the goods come
+// back unsellable. The server enforces the same ceiling, since anything decided
+// here is only a suggestion to whoever is holding the browser.
+const COD_MAX_ORDER_VALUE = 2500;
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
@@ -71,6 +77,20 @@ export default function Checkout() {
   const [orderId, setOrderId] = useState(null);
   const [orderTotal, setOrderTotal] = useState(null);
   const [orderPayment, setOrderPayment] = useState(null);
+
+  // Measured on the goods plus delivery — what the courier would actually be
+  // asked to collect, before the COD handling fee is added on top.
+  const codAllowed = total + shippingFee <= COD_MAX_ORDER_VALUE;
+  const paymentMethods = codAllowed
+    ? PAYMENT_METHODS
+    : PAYMENT_METHODS.filter((m) => m.id !== "cod");
+
+  // A cart can cross the ceiling after COD was already chosen — adding an item,
+  // or a coupon being removed. Without this the customer keeps a selection the
+  // server will refuse.
+  useEffect(() => {
+    if (!codAllowed && payment === "cod") setPayment("online");
+  }, [codAllowed, payment]);
 
   const finalTotal = total + shippingFee + (payment === "cod" ? codFee : 0);
 
@@ -400,7 +420,7 @@ export default function Checkout() {
           <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-card">
             <h2 className="font-semibold text-gray-800 mb-4">Payment Method</h2>
             <div className="space-y-2">
-              {PAYMENT_METHODS.map((m) => (
+              {paymentMethods.map((m) => (
                 <label
                   key={m.id}
                   className={`flex items-center gap-3 border rounded-lg px-4 py-3 cursor-pointer transition-colors ${

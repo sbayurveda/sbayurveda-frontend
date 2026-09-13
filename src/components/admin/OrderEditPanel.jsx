@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Save, Wand2, Plus } from "lucide-react";
+import { Loader2, Save, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import { updateOrder, addOrderNote, AdminAuthError } from "../../api/adminApi";
 import { ORDER_STATUSES } from "../../utils/adminFormat";
@@ -15,8 +15,32 @@ function Label({ children }) {
   return <span className="block text-[11px] font-semibold text-slate-500 mb-1">{children}</span>;
 }
 
+// The switch wp-admin shows at the top of YITH's Order Tracking box. Until it's
+// on, the courier fields below are recorded but the customer sees nothing.
+function PickupToggle({ on, onChange, disabled }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={disabled}
+      onClick={() => onChange(!on)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${
+        on ? "bg-ayur-green" : "bg-slate-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+          on ? "translate-x-[22px]" : "translate-x-0.5"
+        }`}
+      />
+    </button>
+  );
+}
+
 export default function OrderEditPanel({ order, onUpdated, onAuthError, onNoteAdded }) {
   const [status, setStatus] = useState(order.status);
+  const [pickedUp, setPickedUp] = useState(Boolean(order.pickedUp));
   const [carrier, setCarrier] = useState(order.carrierName || "");
   const [code, setCode] = useState(order.trackingCode || "");
   const [url, setUrl] = useState(order.trackingUrl || "");
@@ -28,6 +52,7 @@ export default function OrderEditPanel({ order, onUpdated, onAuthError, onNoteAd
   // Re-seed the form whenever a different order is opened.
   useEffect(() => {
     setStatus(order.status);
+    setPickedUp(Boolean(order.pickedUp));
     setCarrier(order.carrierName || "");
     setCode(order.trackingCode || "");
     setUrl(order.trackingUrl || "");
@@ -36,14 +61,29 @@ export default function OrderEditPanel({ order, onUpdated, onAuthError, onNoteAd
     setNotifyCustomer(false);
   }, [order]);
 
-  const suggestedUrl = buildTrackingUrl(carrier, code);
-  const canSuggest = Boolean(suggestedUrl) && suggestedUrl !== url;
   const statusChanged = status !== order.status;
   const trackingChanged =
+    pickedUp !== Boolean(order.pickedUp) ||
     carrier !== (order.carrierName || "") ||
     code !== (order.trackingCode || "") ||
     url !== (order.trackingUrl || "") ||
     pickUpDate !== (order.pickUpDate || "").slice(0, 10);
+  const dirty = statusChanged || trackingChanged;
+
+  // Only couriers whose URL shape is confirmed generate a link; for the rest
+  // buildTrackingUrl returns "" and the admin pastes what the courier gave them.
+  // Guessing a plausible-but-wrong link sends customers to a dead page.
+  function applyCarrier(nextCarrier) {
+    const wasAuto = !url || url === buildTrackingUrl(carrier, code);
+    setCarrier(nextCarrier);
+    if (wasAuto) setUrl(buildTrackingUrl(nextCarrier, code));
+  }
+
+  function applyCode(nextCode) {
+    const wasAuto = !url || url === buildTrackingUrl(carrier, code);
+    setCode(nextCode);
+    if (wasAuto) setUrl(buildTrackingUrl(carrier, nextCode));
+  }
 
   async function run(kind, fn) {
     if (busy) return;
@@ -58,25 +98,29 @@ export default function OrderEditPanel({ order, onUpdated, onAuthError, onNoteAd
     }
   }
 
-  const saveStatus = () =>
-    run("status", async () => {
-      const { order: updated } = await updateOrder(order.id, { status });
-      onUpdated(updated);
-      toast.success(`Order #${order.number} → ${SETTABLE_STATUSES.find((s) => s.value === status)?.label}`);
-    });
-
-  const saveTracking = () =>
-    run("tracking", async () => {
-      const { order: updated } = await updateOrder(order.id, {
-        tracking: {
+  // Status and courier details go up together in one request. Saving them
+  // separately meant two WordPress round trips — on this host that is the
+  // difference between roughly two seconds and four.
+  const saveAll = () =>
+    run("save", async () => {
+      const payload = {};
+      if (statusChanged) payload.status = status;
+      if (trackingChanged) {
+        payload.tracking = {
+          pickedUp,
           carrierName: carrier,
           trackingCode: code,
           carrierUrl: url,
           pickUpDate,
-        },
-      });
+        };
+      }
+      const { order: updated } = await updateOrder(order.id, payload);
       onUpdated(updated);
-      toast.success("Tracking details saved");
+
+      const parts = [];
+      if (statusChanged) parts.push(SETTABLE_STATUSES.find((s) => s.value === status)?.label);
+      if (trackingChanged) parts.push("tracking");
+      toast.success(`Order #${order.number} — ${parts.filter(Boolean).join(" + ")} saved`);
     });
 
   const submitNote = () =>
@@ -95,25 +139,11 @@ export default function OrderEditPanel({ order, onUpdated, onAuthError, onNoteAd
         <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-2.5">
           Order status
         </h3>
-        <div className="flex gap-2">
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputCls}>
-            {SETTABLE_STATUSES.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-          <button
-            onClick={saveStatus}
-            disabled={!statusChanged || Boolean(busy)}
-            className="btn-primary px-3 py-1.5 text-sm flex items-center gap-1.5 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {busy === "status" ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            Update
-          </button>
-        </div>
-        <p className="text-[10px] text-slate-400 mt-1.5">
-          Saves straight to WooCommerce — the same as changing it in wp-admin, including any
-          customer emails that status normally triggers.
-        </p>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputCls}>
+          {SETTABLE_STATUSES.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
       </div>
 
       {/* Tracking ---------------------------------------------------------- */}
@@ -121,10 +151,23 @@ export default function OrderEditPanel({ order, onUpdated, onAuthError, onNoteAd
         <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-2.5">
           Delivery &amp; tracking
         </h3>
-        <div className="grid grid-cols-2 gap-2.5">
+
+        <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-3 py-2.5">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-slate-700">Order picked up by Carrier</p>
+            <p className="text-[10px] text-slate-400">
+              {pickedUp
+                ? "Tracking is live — the customer can follow this parcel."
+                : "Off: the details below are saved but stay hidden from the customer."}
+            </p>
+          </div>
+          <PickupToggle on={pickedUp} onChange={setPickedUp} disabled={Boolean(busy)} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5 mt-2.5">
           <label className="block">
-            <Label>Courier</Label>
-            <select value={carrier} onChange={(e) => setCarrier(e.target.value)} className={inputCls}>
+            <Label>Carrier name</Label>
+            <select value={carrier} onChange={(e) => applyCarrier(e.target.value)} className={inputCls}>
               <option value="">— none —</option>
               {CARRIERS.map((c) => (
                 <option key={c.id} value={c.name}>
@@ -134,44 +177,34 @@ export default function OrderEditPanel({ order, onUpdated, onAuthError, onNoteAd
             </select>
           </label>
           <label className="block">
-            <Label>Tracking / AWB number</Label>
+            <Label>Tracking code / AWB</Label>
             <input
               value={code}
-              onChange={(e) => {
-                const next = e.target.value;
-                setCode(next);
-                // Only auto-fill an empty link, so a pasted one is never clobbered.
-                if (!url) setUrl(buildTrackingUrl(carrier, next));
-              }}
-              placeholder="e.g. 17526310001304"
+              onChange={(e) => applyCode(e.target.value)}
+              placeholder="e.g. 372225471072"
               className={inputCls}
             />
           </label>
         </div>
 
         <label className="block mt-2.5">
-          <Label>Tracking link (what the customer opens)</Label>
-          <div className="flex gap-2">
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder={
-                findCarrier(carrier)?.trackingUrl
-                  ? "Auto-filled from the tracking number"
-                  : "Paste the courier's tracking link"
-              }
-              className={inputCls}
-            />
-            {canSuggest && (
-              <button
-                onClick={() => setUrl(suggestedUrl)}
-                title="Build the link from the tracking number"
-                className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 shrink-0"
-              >
-                <Wand2 size={14} />
-              </button>
-            )}
-          </div>
+          <Label>Carrier website link (what the customer opens)</Label>
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder={
+              findCarrier(carrier)?.trackingUrl
+                ? "Filled in from the tracking code"
+                : "Paste the courier's tracking link"
+            }
+            className={inputCls}
+          />
+          {findCarrier(carrier)?.trackingUrl && (
+            <span className="block text-[10px] text-slate-400 mt-1">
+              Built automatically from the tracking code — overwrite it if the courier gave you a
+              different link.
+            </span>
+          )}
         </label>
 
         <label className="block mt-2.5">
@@ -180,16 +213,20 @@ export default function OrderEditPanel({ order, onUpdated, onAuthError, onNoteAd
         </label>
 
         <button
-          onClick={saveTracking}
-          disabled={!trackingChanged || Boolean(busy)}
+          onClick={saveAll}
+          disabled={!dirty || Boolean(busy)}
           className="btn-primary w-full mt-3 py-1.5 text-sm flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {busy === "tracking" ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-          Save tracking details
+          {busy === "save" ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          {statusChanged && trackingChanged
+            ? "Save status + tracking"
+            : statusChanged
+              ? "Save order status"
+              : "Save tracking details"}
         </button>
         <p className="text-[10px] text-slate-400 mt-1.5">
-          Stored on the order exactly as wp-admin stores it, so the customer's “Track” button and
-          the courier export both pick it up.
+          One save, one write to WooCommerce — the same as editing the order in wp-admin, including
+          any customer email a status change normally triggers.
         </p>
       </div>
 

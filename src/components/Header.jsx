@@ -4,7 +4,6 @@ import {
   Search,
   Heart,
   ShoppingCart,
-  MessageCircle,
   Tag,
   Menu,
   X,
@@ -16,7 +15,6 @@ import { useStore } from "../context/store";
 import { useCatalogStore } from "../context/catalogStore";
 import { searchProducts } from "../utils/searchProducts";
 import { healthConcerns } from "../data/categories";
-import { whatsappForQuery } from "../utils/whatsapp";
 import { siteInfo } from "../data/siteInfo";
 
 export default function Header() {
@@ -138,14 +136,6 @@ export default function Header() {
 
         {/* Quick actions (desktop) */}
         <div className="hidden lg:flex items-center gap-2 shrink-0">
-          <a
-            href={whatsappForQuery()}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1.5 text-xs font-semibold bg-green-50 text-green-700 px-3 py-2 rounded-full hover:bg-green-100"
-          >
-            <MessageCircle size={15} /> Order on WhatsApp
-          </a>
           <Link
             to="/offers"
             className="flex items-center gap-1.5 text-xs font-semibold text-ayur-green px-2 py-2 hover:underline"
@@ -323,14 +313,6 @@ export default function Header() {
             </div>
           </div>
           <div className="flex gap-2 pt-1">
-            <a
-              href={whatsappForQuery()}
-              target="_blank"
-              rel="noreferrer"
-              className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold bg-green-50 text-green-700 px-3 py-2 rounded-full"
-            >
-              <MessageCircle size={15} /> WhatsApp
-            </a>
             <Link
               to="/track-order"
               onClick={() => setMobileMenuOpen(false)}
