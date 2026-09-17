@@ -23,6 +23,7 @@ import { getSocialProof } from "../utils/socialProof";
 import { getDeliveryEstimate } from "../utils/pincode";
 import { useJsonLd } from "../utils/useJsonLd";
 import { useSeo } from "../utils/useSeo";
+import { seoName } from "../utils/seoName";
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -68,7 +69,7 @@ export default function ProductDetail() {
 
   const plainDesc = product?.description?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   useSeo({
-    title: product?.name,
+    title: product ? seoName(product) : undefined,
     description: product
       ? (plainDesc && plainDesc.length > 60
           ? plainDesc.slice(0, 155)
@@ -132,7 +133,7 @@ export default function ProductDetail() {
       <div className="grid md:grid-cols-2 gap-8">
         <ProductImageGallery
           images={product.images}
-          alt={product.name}
+          alt={seoName(product)}
           discountPct={product.discountPct}
         />
 

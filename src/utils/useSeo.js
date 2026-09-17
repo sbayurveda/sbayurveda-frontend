@@ -67,7 +67,10 @@ export function useSeo({ title, description, path, image, noindex } = {}) {
     });
     link.setAttribute("href", canonical);
 
-    // Open Graph
+    // Open Graph. og:type matters on product pages: "website" tells Facebook,
+    // WhatsApp and Google's rich-result parser that a product page is an
+    // ordinary page, so it never becomes a product card.
+    setMeta("property", "og:type", path?.startsWith("/product/") ? "product" : "website");
     setMeta("property", "og:title", finalTitle);
     setMeta("property", "og:description", finalDesc);
     setMeta("property", "og:url", canonical);
