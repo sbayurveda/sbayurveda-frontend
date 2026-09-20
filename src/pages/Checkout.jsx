@@ -27,11 +27,16 @@ const PAYMENT_METHODS = [
   { id: "cod", label: "Cash on Delivery", icon: Wallet },
 ];
 
-// Cash on Delivery is withdrawn above this order value. High-value COD is where
-// the refusal losses hurt most — the parcel travels twice and the goods come
-// back unsellable. The server enforces the same ceiling, since anything decided
-// here is only a suggestion to whoever is holding the browser.
-const COD_MAX_ORDER_VALUE = 2500;
+// Cash on Delivery is offered only between these two order values.
+//
+// Above the ceiling, a refusal hurts most: the parcel travels twice and the
+// goods come back unsellable. Below the floor, the handling and the return risk
+// cost more than the order is worth.
+//
+// The server enforces the same band, since anything decided here is only a
+// suggestion to whoever is holding the browser.
+const COD_MIN_ORDER_VALUE = 300;
+const COD_MAX_ORDER_VALUE = 2200;
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
@@ -80,14 +85,16 @@ export default function Checkout() {
 
   // Measured on the goods plus delivery — what the courier would actually be
   // asked to collect, before the COD handling fee is added on top.
-  const codAllowed = total + shippingFee <= COD_MAX_ORDER_VALUE;
+  const collectable = total + shippingFee;
+  const codAllowed =
+    collectable >= COD_MIN_ORDER_VALUE && collectable <= COD_MAX_ORDER_VALUE;
   const paymentMethods = codAllowed
     ? PAYMENT_METHODS
     : PAYMENT_METHODS.filter((m) => m.id !== "cod");
 
-  // A cart can cross the ceiling after COD was already chosen — adding an item,
-  // or a coupon being removed. Without this the customer keeps a selection the
-  // server will refuse.
+  // A cart can leave the band after COD was already chosen — an item added, or
+  // removed, or a coupon applied. Without this the customer keeps a selection
+  // the server will refuse.
   useEffect(() => {
     if (!codAllowed && payment === "cod") setPayment("online");
   }, [codAllowed, payment]);
