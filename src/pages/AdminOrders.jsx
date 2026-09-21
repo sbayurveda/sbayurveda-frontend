@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   RefreshCw, Download, LogOut, Loader2, ChevronLeft, ChevronRight,
-  Package, IndianRupee, Clock, AlertCircle,
+  Package, IndianRupee, Clock, AlertCircle, PackagePlus,
 } from "lucide-react";
 import { AdminAuthError, clearAdminSession, fetchAdminOrders, getAdminSession, updateOrder } from "../api/adminApi";
 import AdminLogin from "../components/admin/AdminLogin";
@@ -324,6 +325,11 @@ export default function AdminOrders() {
             <Download size={14} />
             Export{selectedOrders.length > 0 ? ` (${selectedOrders.length})` : ""}
           </button>
+
+          <Link to="/admin/products"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">
+            <PackagePlus size={14} /> Products
+          </Link>
 
           <button onClick={signOut}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100">

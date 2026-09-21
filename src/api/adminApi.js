@@ -114,3 +114,48 @@ export async function updateOrder(orderId, { status, tracking } = {}) {
 export async function addOrderNote(orderId, note, { customerNote = false } = {}) {
   return adminSend(`/api/admin/orders/${orderId}/notes`, "POST", { note, customerNote });
 }
+
+// --- Products ---------------------------------------------------------------
+
+export function fetchProductCapabilities() {
+  return adminGet("/api/admin/products/capabilities");
+}
+
+export function fetchProductTaxonomy() {
+  return adminGet("/api/admin/products/taxonomy");
+}
+
+// Published products the storefront is refusing to show. `need` is "any",
+// "image", "description" or "price".
+export function fetchIncompleteProducts({ page = 1, perPage = 20, need = "any" } = {}) {
+  return adminGet(`/api/admin/products/incomplete?page=${page}&perPage=${perPage}&need=${need}`);
+}
+
+export function createProduct(product) {
+  return adminSend("/api/admin/products", "POST", product);
+}
+
+export function updateProduct(id, changes) {
+  return adminSend(`/api/admin/products/${id}`, "PATCH", changes);
+}
+
+// Reads one file off the customer's machine and posts it as base64 rather than
+// multipart — the server needs no parser for it, and this server gaining a
+// dependency once took payments down for days.
+export function uploadProductImage({ file, productName, altText }) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error(`Couldn't read ${file.name}.`));
+    reader.onload = () => {
+      const base64 = String(reader.result).split(",")[1] || "";
+      adminSend("/api/admin/products/image", "POST", {
+        base64,
+        filename: file.name,
+        contentType: file.type,
+        productName,
+        altText,
+      }).then(resolve, reject);
+    };
+    reader.readAsDataURL(file);
+  });
+}

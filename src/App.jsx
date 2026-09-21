@@ -25,6 +25,7 @@ import NotFound from "./pages/NotFound";
 // Staff-only and never linked from the storefront, so it's split into its own
 // chunk — customers never download the admin dashboard or its xlsx tooling.
 const AdminOrders = lazy(() => import("./pages/AdminOrders"));
+const AdminProducts = lazy(() => import("./pages/AdminProducts"));
 
 // The storefront chrome (announcement bar, header, cart, footer) wraps every
 // customer-facing route. The admin dashboard deliberately sits outside it.
@@ -79,6 +80,20 @@ function App() {
               }
             >
               <AdminOrders />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/admin/products"
+          element={
+            <Suspense
+              fallback={
+                <div className="min-h-screen flex items-center justify-center bg-slate-100 text-sm text-slate-500">
+                  Loading admin…
+                </div>
+              }
+            >
+              <AdminProducts />
             </Suspense>
           }
         />
