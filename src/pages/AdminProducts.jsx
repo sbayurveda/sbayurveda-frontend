@@ -11,6 +11,7 @@ import ProductForm from "../components/admin/ProductForm";
 import { useSeo } from "../utils/useSeo";
 
 const NEEDS = [
+  { key: "", label: "All products", icon: RefreshCw },
   { key: "any", label: "Anything missing", icon: RefreshCw },
   { key: "image", label: "No image", icon: ImageOff },
   { key: "description", label: "No description", icon: FileText },
@@ -24,7 +25,7 @@ export default function AdminProducts() {
   const [taxonomy, setTaxonomy] = useState({ categories: [], brands: [] });
   const [canUpload, setCanUpload] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [need, setNeed] = useState("any");
+  const [need, setNeed] = useState("");
   const [incomplete, setIncomplete] = useState([]);
   const [scanned, setScanned] = useState(0);
   const [counts, setCounts] = useState(null);
@@ -69,7 +70,7 @@ export default function AdminProducts() {
     // A repaired product leaves the queue; one still missing something stays,
     // with its remaining gaps updated.
     setIncomplete((prev) =>
-      saved.missing.length
+      saved.missing.length || need === ""
         ? prev.map((p) => (p.id === saved.id ? saved : p))
         : prev.filter((p) => p.id !== saved.id),
     );
@@ -102,10 +103,13 @@ export default function AdminProducts() {
 
         <section className="bg-white border border-slate-200 rounded-xl">
           <div className="px-4 py-3 border-b border-slate-100">
-            <h2 className="font-bold text-sm text-slate-800">Products the shop is hiding</h2>
+            <h2 className="font-bold text-sm text-slate-800">
+              {need === "" ? "Catalogue" : "Products the shop is hiding"}
+            </h2>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Published, but missing something the storefront requires — so customers can't buy them.
-              Fix one and it appears in the shop within 10 minutes.
+              {need === ""
+                ? "Every product in the shop. Click Fix on any of them to edit it here."
+                : "Published, but missing something the storefront requires — so customers can't buy them. Fix one and it appears in the shop within 10 minutes."}
             </p>
             <input
               value={q}
@@ -136,7 +140,7 @@ export default function AdminProducts() {
             </p>
           ) : incomplete.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-slate-400">
-              {q ? `No product matches "${q}".` : "Nothing missing here."}
+              {q ? `No product matches "${q}".` : need === "" ? "No products yet." : "Nothing missing here."}
             </p>
           ) : (
             <ul className="divide-y divide-slate-100">
@@ -149,7 +153,9 @@ export default function AdminProducts() {
                       </span>}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-slate-800 truncate">{p.name}</p>
-                    <p className="text-[11px] text-red-600">missing {p.missing.join(", ")}</p>
+                    {p.missing.length
+                      ? <p className="text-[11px] text-red-600">missing {p.missing.join(", ")}</p>
+                      : <p className="text-[11px] text-green-700">live · {p.sku || "no SKU"}</p>}
                   </div>
                   <button onClick={() => setEditing(p)}
                           className="text-xs font-semibold text-ayur-green hover:underline shrink-0">

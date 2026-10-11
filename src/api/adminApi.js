@@ -168,8 +168,11 @@ export function fetchCatalogue({ q = "", need = "", page = 1, perPage = 50 } = {
   return adminGet(`/api/admin/catalogue?q=${encodeURIComponent(q)}&need=${need}&page=${page}&perPage=${perPage}`);
 }
 
-export function fetchCustomers({ q = "", page = 1, perPage = 50 } = {}) {
-  return adminGet(`/api/admin/customers?q=${encodeURIComponent(q)}&page=${page}&perPage=${perPage}`);
+export function fetchCustomers({ q = "", pays = "any", repeat = false, risk = false, sort = "value", page = 1, perPage = 50 } = {}) {
+  const params = new URLSearchParams({ q, pays, sort, page, perPage });
+  if (repeat) params.set("repeat", "true");
+  if (risk) params.set("risk", "true");
+  return adminGet(`/api/admin/customers?${params}`);
 }
 
 // --- Tax -------------------------------------------------------------------
