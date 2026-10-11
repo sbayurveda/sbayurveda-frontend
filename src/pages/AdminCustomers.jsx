@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Search, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -35,15 +35,24 @@ export default function AdminCustomers() {
     clearAdminSession(); setSession(null); toast.error(err.message);
   }, []);
 
+  // Filters and typing both fire requests, and they do not return in order.
+  // Only the newest answer may write to the screen, or a slower earlier one
+  // lands last and the list stops matching the filters above it.
+  const requestId = useRef(0);
+
   const load = useCallback(async () => {
+    const mine = ++requestId.current;
     setLoading(true);
     try {
-      setData(await fetchCustomers({ q, pays, repeat, risk, sort, perPage: 100 }));
+      const result = await fetchCustomers({ q, pays, repeat, risk, sort, perPage: 100 });
+      if (mine !== requestId.current) return;
+      setData(result);
     } catch (err) {
+      if (mine !== requestId.current) return;
       if (err instanceof AdminAuthError) onAuthError(err);
       else toast.error(err.message);
     } finally {
-      setLoading(false);
+      if (mine === requestId.current) setLoading(false);
     }
   }, [q, pays, repeat, risk, sort, onAuthError]);
 

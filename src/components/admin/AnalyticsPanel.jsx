@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart3, ChevronDown, Loader2, TrendingUp, TrendingDown, Minus,
   Truck, PackageCheck, Clock, Wallet,
@@ -302,7 +302,19 @@ export default function AnalyticsPanel({ onAuthError }) {
   const [productMode, setProductMode] = useState("revenue");
   const [placeMode, setPlaceMode] = useState("states");
 
+  // Each range change starts a request, and they do not come back in the order
+  // they were sent: a wide range takes the server longer to add up than a
+  // single day. Tapping Today while the 30-day request is still in flight
+  // meant the slow answer landed last and overwrote the fast one, so the
+  // button said Today and the figures were the month's. Tapping again fixed
+  // it only because nothing else was in flight the second time.
+  //
+  // So each request takes a number, and only the newest one is allowed to
+  // write anything.
+  const requestId = useRef(0);
+
   const load = useCallback(async () => {
+    const mine = ++requestId.current;
     setLoading(true);
     setError("");
     try {
@@ -310,12 +322,16 @@ export default function AnalyticsPanel({ onAuthError }) {
         from: storeDayIso(Number(rangeKey) - 1),
         to: storeDayIso(0),
       });
+      if (mine !== requestId.current) return;
       setData(result);
     } catch (err) {
+      if (mine !== requestId.current) return;
       if (err instanceof AdminAuthError) onAuthError(err);
       else setError(err.message || "Could not load analytics.");
     } finally {
-      setLoading(false);
+      // A superseded request must not clear the spinner either — the one that
+      // replaced it is still running.
+      if (mine === requestId.current) setLoading(false);
     }
   }, [rangeKey, onAuthError]);
 

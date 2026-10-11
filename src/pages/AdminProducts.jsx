@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, ImageOff, FileText, IndianRupee, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -49,18 +49,26 @@ export default function AdminProducts() {
       .catch(() => {});
   }, [session, handleAuthError]);
 
+  // Searching and switching tabs both fire requests that can return out of
+  // order, which would leave the list showing one tab's results under
+  // another tab's heading.
+  const requestId = useRef(0);
+
   const loadIncomplete = useCallback(async () => {
+    const mine = ++requestId.current;
     setLoading(true);
     try {
       const d = await fetchCatalogue({ q, need, page, perPage: 25 });
+      if (mine !== requestId.current) return;
       setIncomplete(d.products || []);
       setScanned(d.total || 0);
       setCounts(d.counts || null);
     } catch (err) {
+      if (mine !== requestId.current) return;
       if (err instanceof AdminAuthError) handleAuthError(err);
       else toast.error(err.message);
     } finally {
-      setLoading(false);
+      if (mine === requestId.current) setLoading(false);
     }
   }, [page, need, q, handleAuthError]);
 
