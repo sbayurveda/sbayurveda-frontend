@@ -159,3 +159,52 @@ export function uploadProductImage({ file, productName, altText }) {
     reader.readAsDataURL(file);
   });
 }
+
+// --- The local copy (all products, all orders, no WordPress in the path) ----
+
+export function fetchStoreStatus() {
+  return adminGet("/api/admin/store/status");
+}
+
+export function resyncStore() {
+  return adminSend("/api/admin/store/sync", "POST", {});
+}
+
+export function fetchCatalogue({ q = "", need = "", page = 1, perPage = 50 } = {}) {
+  return adminGet(`/api/admin/catalogue?q=${encodeURIComponent(q)}&need=${need}&page=${page}&perPage=${perPage}`);
+}
+
+export function fetchCustomers({ q = "", page = 1, perPage = 50 } = {}) {
+  return adminGet(`/api/admin/customers?q=${encodeURIComponent(q)}&page=${page}&perPage=${perPage}`);
+}
+
+// --- Tax -------------------------------------------------------------------
+
+export function fetchTaxReport({ from, to }) {
+  return adminGet(`/api/admin/tax/report?from=${from}&to=${to}`);
+}
+
+// The CSV comes back as a file, not JSON, so it needs the raw response.
+export async function downloadTaxCsv({ from, to }) {
+  const session = getAdminSession();
+  if (!session) throw new AdminAuthError("Your session has expired. Please sign in again.");
+  const res = await fetch(`${API_BASE}/api/admin/tax/export?from=${from}&to=${to}`, {
+    headers: { Authorization: `Bearer ${session.token}` },
+  });
+  if (res.status === 401) {
+    clearAdminSession();
+    throw new AdminAuthError("Your session has expired. Please sign in again.");
+  }
+  if (!res.ok) throw new Error("Could not build the tax file.");
+  return { blob: await res.blob(), filename: `MTR_B2C_${from}_to_${to}.csv` };
+}
+
+// --- Banners ---------------------------------------------------------------
+
+export function fetchBanners() {
+  return adminGet("/api/admin/banners");
+}
+
+export function saveBanners(banners) {
+  return adminSend("/api/admin/banners", "PUT", { banners });
+}

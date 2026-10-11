@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
-  RefreshCw, Download, LogOut, Loader2, ChevronLeft, ChevronRight,
-  Package, IndianRupee, Clock, AlertCircle, PackagePlus,
+  RefreshCw, Download, Loader2, ChevronLeft, ChevronRight,
+  Package, IndianRupee, Clock, AlertCircle,
 } from "lucide-react";
 import { AdminAuthError, clearAdminSession, fetchAdminOrders, getAdminSession, updateOrder } from "../api/adminApi";
 import AdminLogin from "../components/admin/AdminLogin";
+import AdminShell from "../components/admin/AdminShell";
 import OrderFilters from "../components/admin/OrderFilters";
 import { EMPTY_FILTERS } from "../utils/adminFilters";
 import OrderTable from "../components/admin/OrderTable";
@@ -297,48 +297,34 @@ export default function AdminOrders() {
   if (!session) return <AdminLogin onSuccess={() => setSession(getAdminSession())} />;
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
-        <div className="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
-          <div className="mr-auto">
-            <h1 className="font-bold text-slate-900 leading-tight">Order History</h1>
-            <p className="text-[11px] text-slate-500">
-              {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString("en-IN")}` : "Loading…"}
-              {autoRefresh && " · auto-refreshing"}
-            </p>
-          </div>
-
-          <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+    <AdminShell
+      title="Orders"
+      subtitle={`${lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString("en-IN")}` : "Loading…"}${autoRefresh ? " · auto-refreshing" : ""}`}
+      onSignOut={signOut}
+      actions={
+        <>
+          <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none px-1">
             <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)}
               className="accent-ayur-green" />
             Auto-refresh
           </label>
 
           <button onClick={() => loadOrders()} disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             Refresh
           </button>
 
+          {/* The Amazon pickup export. Untouched — same dialog, same template. */}
           <button onClick={() => setExportOpen(true)} disabled={selectedOrders.length === 0}
             className="btn-primary flex items-center gap-1.5 px-3 py-1.5 text-sm disabled:opacity-40 disabled:cursor-not-allowed">
             <Download size={14} />
             Export{selectedOrders.length > 0 ? ` (${selectedOrders.length})` : ""}
           </button>
-
-          <Link to="/admin/products"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">
-            <PackagePlus size={14} /> Products
-          </Link>
-
-          <button onClick={signOut}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100">
-            <LogOut size={14} /> Sign out
-          </button>
-        </div>
-      </header>
-
-      <main className="max-w-[1600px] mx-auto px-4 py-4 space-y-4">
+        </>
+      }
+    >
+      <div className="space-y-4">
         <AnalyticsPanel onAuthError={handleAuthError} />
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -464,7 +450,7 @@ export default function AdminOrders() {
             </button>
           </div>
         )}
-      </main>
+      </div>
 
       <OrderDetailDrawer
         order={detailOrder}
@@ -473,6 +459,6 @@ export default function AdminOrders() {
         onUpdated={handleOrderUpdated}
       />
       <ExportDialog open={exportOpen} orders={selectedOrders} onClose={() => setExportOpen(false)} />
-    </div>
+    </AdminShell>
   );
 }

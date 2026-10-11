@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { fetchBanners } from "../../api/banners";
 
-// Designed banners (AI-generated product photography, art-directed to match
-// the site's real content: real brand names, real contact info, real product
-// types). Swap files in public/banners/ to update — same filenames.
-const SLIDES = [
+// The banners shipped with the build. They are the fallback now, not the
+// source: the console serves the live set, and until that answers (or if it
+// cannot) these render, so the homepage is never a blank grey box.
+const FALLBACK_SLIDES = [
   {
     src: "/banners/2x-guarantee.jpg",
     alt: "Found It Cheaper? We Pay You 2X — SB Ayurveda Lowest Price Guarantee",
@@ -25,23 +26,40 @@ const SLIDES = [
 
 export default function BannerCarousel() {
   const [index, setIndex] = useState(0);
+  const [slides, setSlides] = useState(FALLBACK_SLIDES);
 
+  // Whoever runs the shop changes these from the console. Failing quietly back
+  // to the built-in set matters more than showing the newest banner: a
+  // homepage with no hero looks like a broken site.
   useEffect(() => {
-    const id = setInterval(() => setIndex((i) => (i + 1) % SLIDES.length), 5000);
-    return () => clearInterval(id);
+    let cancelled = false;
+    fetchBanners()
+      .then((live) => {
+        if (!cancelled && live.length) {
+          setSlides(live);
+          setIndex(0);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    const id = setInterval(() => setIndex((i) => (i + 1) % slides.length), 5000);
+    return () => clearInterval(id);
+  }, [slides.length]);
+
   function prev() {
-    setIndex((i) => (i - 1 + SLIDES.length) % SLIDES.length);
+    setIndex((i) => (i - 1 + slides.length) % slides.length);
   }
   function next() {
-    setIndex((i) => (i + 1) % SLIDES.length);
+    setIndex((i) => (i + 1) % slides.length);
   }
 
   return (
     <section className="relative bg-gray-100">
       <div className="relative w-full aspect-[16/6] sm:aspect-[21/7] overflow-hidden">
-        {SLIDES.map((slide, i) => (
+        {slides.map((slide, i) => (
           <Link
             key={slide.src}
             to={slide.to}
@@ -74,7 +92,7 @@ export default function BannerCarousel() {
         </button>
 
         <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5">
-          {SLIDES.map((slide, i) => (
+          {slides.map((slide, i) => (
             <button
               key={slide.src}
               onClick={() => setIndex(i)}

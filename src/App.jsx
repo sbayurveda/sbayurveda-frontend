@@ -26,6 +26,10 @@ import NotFound from "./pages/NotFound";
 // chunk — customers never download the admin dashboard or its xlsx tooling.
 const AdminOrders = lazy(() => import("./pages/AdminOrders"));
 const AdminProducts = lazy(() => import("./pages/AdminProducts"));
+const AdminSales = lazy(() => import("./pages/AdminSales"));
+const AdminCustomers = lazy(() => import("./pages/AdminCustomers"));
+const AdminCreatives = lazy(() => import("./pages/AdminCreatives"));
+const AdminTax = lazy(() => import("./pages/AdminTax"));
 
 // The storefront chrome (announcement bar, header, cart, footer) wraps every
 // customer-facing route. The admin dashboard deliberately sits outside it.
@@ -94,6 +98,62 @@ function App() {
               }
             >
               <AdminProducts />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <Suspense
+              fallback={
+                <div className="min-h-screen flex items-center justify-center bg-slate-100 text-sm text-slate-500">
+                  Loading admin…
+                </div>
+              }
+            >
+              <AdminSales />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/admin/customers"
+          element={
+            <Suspense
+              fallback={
+                <div className="min-h-screen flex items-center justify-center bg-slate-100 text-sm text-slate-500">
+                  Loading admin…
+                </div>
+              }
+            >
+              <AdminCustomers />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/admin/creatives"
+          element={
+            <Suspense
+              fallback={
+                <div className="min-h-screen flex items-center justify-center bg-slate-100 text-sm text-slate-500">
+                  Loading admin…
+                </div>
+              }
+            >
+              <AdminCreatives />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/admin/tax"
+          element={
+            <Suspense
+              fallback={
+                <div className="min-h-screen flex items-center justify-center bg-slate-100 text-sm text-slate-500">
+                  Loading admin…
+                </div>
+              }
+            >
+              <AdminTax />
             </Suspense>
           }
         />
