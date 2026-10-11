@@ -125,12 +125,6 @@ export function fetchProductTaxonomy() {
   return adminGet("/api/admin/products/taxonomy");
 }
 
-// Published products the storefront is refusing to show. `need` is "any",
-// "image", "description" or "price".
-export function fetchIncompleteProducts({ page = 1, perPage = 20, need = "any" } = {}) {
-  return adminGet(`/api/admin/products/incomplete?page=${page}&perPage=${perPage}&need=${need}`);
-}
-
 export function createProduct(product) {
   return adminSend("/api/admin/products", "POST", product);
 }

@@ -18,7 +18,7 @@ function Field({ label, hint, children }) {
 }
 
 const EMPTY = {
-  name: "", mrp: "", price: "", sku: "", stockQty: "",
+  name: "", mrp: "", price: "", sku: "", stockQty: "", hsn: "",
   description: "", shortDescription: "", categoryIds: [], brandIds: [], images: [],
 };
 
@@ -47,6 +47,7 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
       price: product.salePrice ? String(product.salePrice) : "",
       sku: product.sku || "",
       stockQty: product.stockQty != null ? String(product.stockQty) : "",
+      hsn: product.hsn || "",
       description: product.description || "",
       shortDescription: product.shortDescription || "",
       categoryIds: (product.categories || []).map((c) => c.id),
@@ -72,6 +73,7 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
         price: form.price === "" ? undefined : Number(form.price),
         sku: form.sku.trim() || undefined,
         stockQty: form.stockQty === "" ? undefined : Number(form.stockQty),
+        hsn: form.hsn.trim(),
         description: form.description,
         shortDescription: form.shortDescription,
         categoryIds: form.categoryIds,
@@ -83,6 +85,7 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
         : await createProduct(payload);
 
       onSaved(saved);
+      if (saved.warning) { toast.error(saved.warning, { duration: 6000 }); return; }
       toast.success(
         saved.missing.length
           ? `Saved — but still hidden from the shop (needs ${saved.missing.join(", ")})`
@@ -154,6 +157,10 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
           </select>
         </Field>
       </div>
+
+      <Field label="HSN code" hint="Blank is treated as 3004 — ayurvedic medicaments, 5%. This sets the GST rate in the tax report.">
+        <input value={form.hsn} onChange={set("hsn")} className={inputCls} placeholder="3004" />
+      </Field>
 
       <div className="grid grid-cols-2 gap-2.5">
         <Field label="SKU" hint="Optional">

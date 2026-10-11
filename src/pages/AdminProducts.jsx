@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Loader2, PackagePlus, ArrowLeft, ImageOff, FileText, IndianRupee, RefreshCw } from "lucide-react";
-import toast, { Toaster } from "react-hot-toast";
+import { Loader2, ImageOff, FileText, IndianRupee, RefreshCw } from "lucide-react";
+import toast from "react-hot-toast";
 import {
   getAdminSession, clearAdminSession, isAdminApiConfigured, AdminAuthError,
-  fetchProductCapabilities, fetchProductTaxonomy, fetchIncompleteProducts,
+  fetchProductCapabilities, fetchProductTaxonomy, fetchCatalogue,
 } from "../api/adminApi";
 import AdminLogin from "../components/admin/AdminLogin";
+import AdminShell from "../components/admin/AdminShell";
 import ProductForm from "../components/admin/ProductForm";
 import { useSeo } from "../utils/useSeo";
 
@@ -27,6 +27,8 @@ export default function AdminProducts() {
   const [need, setNeed] = useState("any");
   const [incomplete, setIncomplete] = useState([]);
   const [scanned, setScanned] = useState(0);
+  const [counts, setCounts] = useState(null);
+  const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -49,16 +51,17 @@ export default function AdminProducts() {
   const loadIncomplete = useCallback(async () => {
     setLoading(true);
     try {
-      const d = await fetchIncompleteProducts({ page, perPage: 20, need });
+      const d = await fetchCatalogue({ q, need, page, perPage: 25 });
       setIncomplete(d.products || []);
-      setScanned(d.scanned || 0);
+      setScanned(d.total || 0);
+      setCounts(d.counts || null);
     } catch (err) {
       if (err instanceof AdminAuthError) handleAuthError(err);
       else toast.error(err.message);
     } finally {
       setLoading(false);
     }
-  }, [page, need, handleAuthError]);
+  }, [page, need, q, handleAuthError]);
 
   useEffect(() => { if (session) loadIncomplete(); }, [session, loadIncomplete]);
 
@@ -79,20 +82,14 @@ export default function AdminProducts() {
   if (!session) return <AdminLogin onSuccess={() => setSession(getAdminSession())} />;
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <Toaster position="top-right" />
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
-        <div className="max-w-[1400px] mx-auto px-4 py-3 flex items-center gap-3">
-          <PackagePlus size={18} className="text-ayur-green" />
-          <h1 className="font-bold text-slate-900">Products</h1>
-          <Link to="/admin/orders"
-                className="ml-auto text-xs text-slate-500 hover:text-ayur-green inline-flex items-center gap-1">
-            <ArrowLeft size={13} /> Orders
-          </Link>
-        </div>
-      </header>
-
-      <main className="max-w-[1400px] mx-auto px-4 py-4 grid lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] gap-4 items-start">
+    <AdminShell
+      title="Products"
+      subtitle={counts
+        ? `All ${counts.all} products, searchable. ${counts.missingImage} hidden for no image, ${counts.missingDescription} for no description.`
+        : "Add a product here and it is in WooCommerce immediately, on the storefront within ten minutes."}
+      onSignOut={() => { clearAdminSession(); setSession(null); }}
+    >
+      <div className="grid lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] gap-4 items-start">
         <ProductForm
           key={editing?.id || "new"}
           product={editing}
@@ -110,6 +107,12 @@ export default function AdminProducts() {
               Published, but missing something the storefront requires — so customers can't buy them.
               Fix one and it appears in the shop within 10 minutes.
             </p>
+            <input
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setPage(1); }}
+              placeholder="Search all products by name, SKU or brand…"
+              className="w-full mt-2.5 border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ayur-green/25"
+            />
             <div className="flex flex-wrap gap-1.5 mt-2.5">
               {NEEDS.map((n) => (
                 <button
@@ -133,7 +136,7 @@ export default function AdminProducts() {
             </p>
           ) : incomplete.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-slate-400">
-              Nothing missing in the {scanned} products on this page.
+              {q ? `No product matches "${q}".` : "Nothing missing here."}
             </p>
           ) : (
             <ul className="divide-y divide-slate-100">
@@ -158,16 +161,16 @@ export default function AdminProducts() {
           )}
 
           <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-100 text-xs text-slate-500">
-            <span>Page {page} · scanned {scanned}</span>
+            <span className="tabular-nums">{scanned} matching · page {page} of {Math.max(1, Math.ceil(scanned / 25))}</span>
             <span className="flex gap-2">
               <button disabled={page === 1 || loading} onClick={() => setPage((p) => p - 1)}
                       className="px-2 py-1 rounded border border-slate-200 disabled:opacity-40">Back</button>
-              <button disabled={loading || scanned === 0} onClick={() => setPage((p) => p + 1)}
+              <button disabled={loading || page * 25 >= scanned} onClick={() => setPage((p) => p + 1)}
                       className="px-2 py-1 rounded border border-slate-200 disabled:opacity-40">Next</button>
             </span>
           </div>
         </section>
-      </main>
-    </div>
+      </div>
+    </AdminShell>
   );
 }
