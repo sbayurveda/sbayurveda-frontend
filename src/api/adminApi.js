@@ -205,3 +205,21 @@ export function fetchBanners() {
 export function saveBanners(banners) {
   return adminSend("/api/admin/banners", "PUT", { banners });
 }
+
+// --- Cash on delivery rules -------------------------------------------------
+
+export function fetchCodRules() {
+  return adminGet("/api/admin/cod-rules");
+}
+
+export function saveCodRules(rules) {
+  return adminSend("/api/admin/cod-rules", "PUT", rules);
+}
+
+export function blockCodPhone(phone, reason) {
+  return adminSend("/api/admin/cod-rules/block", "POST", { phone, reason });
+}
+
+export function unblockCodPhone(phone) {
+  return adminSend("/api/admin/cod-rules/unblock", "POST", { phone });
+}

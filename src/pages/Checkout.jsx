@@ -17,6 +17,7 @@ import { useStore } from "../context/store";
 import { useCart } from "../context/useCart";
 import { detectCurrentLocation } from "../utils/geolocation";
 import { getDeliveryEstimate, DELIVERY_ZONES, zoneForState } from "../utils/pincode";
+import { fetchCodRules, isPhoneBlocked } from "../api/codRules";
 import { isBridgeConfigured, createPayment, verifyPayment, placeCodOrder } from "../api/checkoutBridge";
 import { useSeo } from "../utils/useSeo";
 import { capPhoneInput, cleanPhone } from "../utils/phone";
@@ -27,16 +28,15 @@ const PAYMENT_METHODS = [
   { id: "cod", label: "Cash on Delivery", icon: Wallet },
 ];
 
-// Cash on Delivery is offered only between these two order values.
+// Cash on Delivery is withdrawn by any of three rules, all of them set in the
+// console rather than compiled in here: the order value, a product in the cart,
+// and the phone number.
 //
-// Above the ceiling, a refusal hurts most: the parcel travels twice and the
-// goods come back unsellable. Below the floor, the handling and the return risk
-// cost more than the order is worth.
-//
-// The server enforces the same band, since anything decided here is only a
-// suggestion to whoever is holding the browser.
-const COD_MIN_ORDER_VALUE = 300;
-const COD_MAX_ORDER_VALUE = 2200;
+// Used until the console answers, so a slow settings call cannot leave the
+// checkout with no payment options at all. The server enforces every rule
+// again, since anything decided here is only a suggestion to whoever is
+// holding the browser.
+const COD_FALLBACK = { enabled: true, minOrderValue: 300, maxOrderValue: 2200, blockedProductIds: [] };
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
@@ -83,11 +83,34 @@ export default function Checkout() {
   const [orderTotal, setOrderTotal] = useState(null);
   const [orderPayment, setOrderPayment] = useState(null);
 
+  const [codConfig, setCodConfig] = useState(COD_FALLBACK);
+  const [phoneBlocked, setPhoneBlocked] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCodRules().then((r) => { if (!cancelled) setCodConfig(r); });
+    return () => { cancelled = true; };
+  }, []);
+
   // Measured on the goods plus delivery — what the courier would actually be
   // asked to collect, before the COD handling fee is added on top.
   const collectable = total + shippingFee;
-  const codAllowed =
-    collectable >= COD_MIN_ORDER_VALUE && collectable <= COD_MAX_ORDER_VALUE;
+  const blockedItem = items.find((i) => codConfig.blockedProductIds.includes(Number(String(i.id).replace(/^wc-/, ""))));
+
+  // Why COD is not on offer, when there is something useful to say. A blocked
+  // phone number deliberately produces no message: the option is simply absent,
+  // the way it is for an address we do not serve.
+  const codRefusal = !codConfig.enabled
+    ? "Cash on Delivery isn't available at the moment."
+    : blockedItem
+      ? `Cash on Delivery isn't available for ${blockedItem.name}.`
+      : collectable > codConfig.maxOrderValue
+        ? `Cash on Delivery isn't available above ₹${codConfig.maxOrderValue}.`
+        : collectable < codConfig.minOrderValue
+          ? `Cash on Delivery isn't available below ₹${codConfig.minOrderValue}.`
+          : null;
+
+  const codAllowed = !codRefusal && !phoneBlocked;
   const paymentMethods = codAllowed
     ? PAYMENT_METHODS
     : PAYMENT_METHODS.filter((m) => m.id !== "cod");
@@ -103,6 +126,19 @@ export default function Checkout() {
 
   function updateField(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  // Asked once a full number is typed, so the option is gone before the
+  // customer reaches the payment section rather than disappearing under them.
+  // Nothing is shown either way — a refused number is told nothing.
+  async function handlePhoneChange(value) {
+    updateField("phone", value);
+    const digits = String(value).replace(/\D/g, "");
+    if (digits.length < 10) {
+      setPhoneBlocked(false);
+      return;
+    }
+    setPhoneBlocked(await isPhoneBlocked(digits.slice(-10)));
   }
 
   async function handlePincodeChange(value) {
@@ -323,7 +359,7 @@ export default function Checkout() {
               />
               <input
                 value={form.phone}
-                onChange={(e) => updateField("phone", capPhoneInput(e.target.value))}
+                onChange={(e) => handlePhoneChange(capPhoneInput(e.target.value))}
                 placeholder="10-digit Phone Number *"
                 inputMode="numeric"
                 className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ayur-green/30"
@@ -426,6 +462,11 @@ export default function Checkout() {
 
           <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-card">
             <h2 className="font-semibold text-gray-800 mb-4">Payment Method</h2>
+            {codRefusal && (
+              <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2.5 leading-relaxed">
+                {codRefusal} Please pay online to place this order.
+              </p>
+            )}
             <div className="space-y-2">
               {paymentMethods.map((m) => (
                 <label

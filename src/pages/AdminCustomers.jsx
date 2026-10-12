@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Search, AlertTriangle } from "lucide-react";
+import { Loader2, Search, AlertTriangle, ShieldOff } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   getAdminSession, clearAdminSession, isAdminApiConfigured, AdminAuthError, fetchCustomers,
+  blockCodPhone,
 } from "../api/adminApi";
 import AdminLogin from "../components/admin/AdminLogin";
 import AdminShell from "../components/admin/AdminShell";
@@ -30,6 +31,7 @@ export default function AdminCustomers() {
   const [risk, setRisk] = useState(false);
   const [sort, setSort] = useState("value");
   const [loading, setLoading] = useState(false);
+  const [blocking, setBlocking] = useState("");
 
   const onAuthError = useCallback((err) => {
     clearAdminSession(); setSession(null); toast.error(err.message);
@@ -61,6 +63,22 @@ export default function AdminCustomers() {
     const t = setTimeout(load, q ? 250 : 0); // debounce typing, load immediately otherwise
     return () => clearTimeout(t);
   }, [session, load, q]);
+
+  // The customer is never told. The option simply stops appearing for that
+  // number, the way it does not appear for an order outside the value band.
+  async function block(c) {
+    setBlocking(c.phone);
+    try {
+      await blockCodPhone(c.phone, `${c.cancelled} of ${c.placed} COD orders cancelled`);
+      toast.success(`${c.phone} is now prepaid only`);
+      load();
+    } catch (err) {
+      if (err instanceof AdminAuthError) onAuthError(err);
+      else toast.error(err.message);
+    } finally {
+      setBlocking("");
+    }
+  }
 
   if (!isAdminApiConfigured()) return <div className="p-8 text-center text-slate-500">Admin API isn't configured.</div>;
   if (!session) return <AdminLogin onSuccess={() => setSession(getAdminSession())} />;
@@ -103,9 +121,19 @@ export default function AdminCustomers() {
           </p>
           <div className="flex flex-wrap gap-1.5">
             {data.atRisk.map((c) => (
-              <span key={c.phone} className="bg-white border border-amber-300 rounded-lg px-2.5 py-1 text-[11px]">
-                <b className="tabular-nums">{c.phone}</b>
-                <span className="text-amber-800"> · {c.cancelled} of {c.placed} cancelled</span>
+              <span key={c.phone} className="bg-white border border-amber-300 rounded-lg pl-2.5 pr-1 py-1 text-[11px] flex items-center gap-2">
+                <span>
+                  <b className="tabular-nums">{c.phone}</b>
+                  <span className="text-amber-800"> · {c.cancelled} of {c.placed} cancelled</span>
+                </span>
+                <button
+                  onClick={() => block(c)}
+                  disabled={blocking === c.phone}
+                  className="px-1.5 py-0.5 rounded text-[10.5px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40 inline-flex items-center gap-1"
+                >
+                  {blocking === c.phone ? <Loader2 size={10} className="animate-spin" /> : <ShieldOff size={10} />}
+                  Block COD
+                </button>
               </span>
             ))}
           </div>

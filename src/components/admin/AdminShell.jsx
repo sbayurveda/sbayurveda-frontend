@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import {
-  BarChart3, ShoppingBag, Package, Users, Image as ImageIcon, Receipt, LogOut,
+  BarChart3, ShoppingBag, Package, Users, Image as ImageIcon, Receipt, Settings, LogOut,
 } from "lucide-react";
 
 // One frame around every admin screen.
@@ -17,6 +17,7 @@ const SECTIONS = [
   { to: "/admin/customers", label: "Customers", icon: Users },
   { to: "/admin/creatives", label: "Creatives", icon: ImageIcon },
   { to: "/admin/tax", label: "Tax", icon: Receipt },
+  { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export default function AdminShell({ title, subtitle, actions, onSignOut, children }) {

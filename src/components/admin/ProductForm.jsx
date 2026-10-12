@@ -18,7 +18,7 @@ function Field({ label, hint, children }) {
 }
 
 const EMPTY = {
-  name: "", mrp: "", price: "", sku: "", stockQty: "", hsn: "",
+  name: "", mrp: "", price: "", sku: "", stockQty: "", hsn: "", codDisabled: false,
   description: "", shortDescription: "", categoryIds: [], brandIds: [], images: [],
 };
 
@@ -48,6 +48,7 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
       sku: product.sku || "",
       stockQty: product.stockQty != null ? String(product.stockQty) : "",
       hsn: product.hsn || "",
+      codDisabled: Boolean(product.codDisabled),
       description: product.description || "",
       shortDescription: product.shortDescription || "",
       categoryIds: (product.categories || []).map((c) => c.id),
@@ -74,6 +75,7 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
         sku: form.sku.trim() || undefined,
         stockQty: form.stockQty === "" ? undefined : Number(form.stockQty),
         hsn: form.hsn.trim(),
+        codDisabled: form.codDisabled,
         description: form.description,
         shortDescription: form.shortDescription,
         categoryIds: form.categoryIds,
@@ -156,6 +158,27 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
             {taxonomy.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </Field>
+      </div>
+
+      <div className="flex items-center gap-3 border border-slate-200 rounded-lg px-3 py-2.5 bg-white">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-slate-700">Cash on Delivery</p>
+          <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">
+            {form.codDisabled
+              ? "Off — this product can only be bought by paying online, and any cart holding it loses the option."
+              : "On — customers can pay for this product on delivery."}
+          </p>
+        </div>
+        <button
+          type="button" role="switch" aria-checked={!form.codDisabled} aria-label="Cash on Delivery for this product"
+          onClick={() => setForm((f) => ({ ...f, codDisabled: !f.codDisabled }))}
+          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+            form.codDisabled ? "bg-slate-300" : "bg-ayur-green"
+          }`}
+        >
+          <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+            form.codDisabled ? "translate-x-0.5" : "translate-x-[18px]"}`} />
+        </button>
       </div>
 
       <Field label="HSN code" hint="Blank is treated as 3004 — ayurvedic medicaments, 5%. This sets the GST rate in the tax report.">

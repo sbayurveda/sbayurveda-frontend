@@ -30,6 +30,7 @@ const AdminSales = lazy(() => import("./pages/AdminSales"));
 const AdminCustomers = lazy(() => import("./pages/AdminCustomers"));
 const AdminCreatives = lazy(() => import("./pages/AdminCreatives"));
 const AdminTax = lazy(() => import("./pages/AdminTax"));
+const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 
 // The storefront chrome (announcement bar, header, cart, footer) wraps every
 // customer-facing route. The admin dashboard deliberately sits outside it.
@@ -154,6 +155,20 @@ function App() {
               }
             >
               <AdminTax />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/admin/settings"
+          element={
+            <Suspense
+              fallback={
+                <div className="min-h-screen flex items-center justify-center bg-slate-100 text-sm text-slate-500">
+                  Loading admin…
+                </div>
+              }
+            >
+              <AdminSettings />
             </Suspense>
           }
         />
