@@ -164,14 +164,25 @@ export function resyncStore() {
   return adminSend("/api/admin/store/sync", "POST", {});
 }
 
-export function fetchCatalogue({ q = "", need = "", page = 1, perPage = 50 } = {}) {
-  return adminGet(`/api/admin/catalogue?q=${encodeURIComponent(q)}&need=${need}&page=${page}&perPage=${perPage}`);
+export function fetchCatalogue({ q = "", need = "", cod = "any", minPrice = "", maxPrice = "", page = 1, perPage = 50 } = {}) {
+  const params = new URLSearchParams({ q, need, cod, page, perPage });
+  if (minPrice !== "") params.set("minPrice", minPrice);
+  if (maxPrice !== "") params.set("maxPrice", maxPrice);
+  return adminGet(`/api/admin/catalogue?${params}`);
 }
 
-export function fetchCustomers({ q = "", pays = "any", repeat = false, risk = false, sort = "value", page = 1, perPage = 50 } = {}) {
+// Switches COD for many products in one go. The server batches them a hundred
+// at a time, so the whole catalogue is fifteen requests rather than fifteen
+// hundred.
+export function setProductsCod(productIds, codDisabled) {
+  return adminSend("/api/admin/products/cod", "POST", { productIds, codDisabled });
+}
+
+export function fetchCustomers({ q = "", pays = "any", repeat = false, risk = false, blocked = false, sort = "value", page = 1, perPage = 50 } = {}) {
   const params = new URLSearchParams({ q, pays, sort, page, perPage });
   if (repeat) params.set("repeat", "true");
   if (risk) params.set("risk", "true");
+  if (blocked) params.set("blocked", "true");
   return adminGet(`/api/admin/customers?${params}`);
 }
 

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Save, Trash2, ShieldOff } from "lucide-react";
+import { Loader2, Save, Trash2, ShieldOff, PackageX } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   getAdminSession, clearAdminSession, isAdminApiConfigured, AdminAuthError,
-  fetchCodRules, saveCodRules, unblockCodPhone,
+  fetchCodRules, saveCodRules, unblockCodPhone, fetchCatalogue, setProductsCod,
 } from "../api/adminApi";
 import AdminLogin from "../components/admin/AdminLogin";
 import AdminShell from "../components/admin/AdminShell";
@@ -34,7 +34,8 @@ export default function AdminSettings() {
   const [rules, setRules] = useState(null);
   const [saved, setSaved] = useState("");
   const [busy, setBusy] = useState(false);
-  const [blockedProducts, setBlockedProducts] = useState(0);
+  const [codOffProducts, setCodOffProducts] = useState([]);
+  const [freeing, setFreeing] = useState(0);
 
   const onAuthError = useCallback((err) => {
     clearAdminSession(); setSession(null); toast.error(err.message);
@@ -42,11 +43,33 @@ export default function AdminSettings() {
 
   const load = useCallback(() => {
     fetchCodRules()
-      .then((d) => { setRules(d.rules); setSaved(JSON.stringify(d.rules)); setBlockedProducts(d.blockedProducts || 0); })
+      .then((d) => { setRules(d.rules); setSaved(JSON.stringify(d.rules)); })
       .catch((err) => { if (err instanceof AdminAuthError) onAuthError(err); else toast.error(err.message); });
   }, [onAuthError]);
 
-  useEffect(() => { if (session) load(); }, [session, load]);
+  // The products switched off individually. A count alone told you something
+  // was set but not what, and left no way to undo it from here.
+  const loadCodOff = useCallback(() => {
+    fetchCatalogue({ cod: "off", perPage: 200 })
+      .then((d) => setCodOffProducts(d.products || []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { if (session) { load(); loadCodOff(); } }, [session, load, loadCodOff]);
+
+  async function allowCod(ids) {
+    setFreeing(ids.length);
+    try {
+      await setProductsCod(ids, false);
+      toast.success(ids.length === 1 ? "Cash on delivery allowed again" : `${ids.length} products allowed again`);
+      loadCodOff(); load();
+    } catch (err) {
+      if (err instanceof AdminAuthError) onAuthError(err);
+      else toast.error(err.message);
+    } finally {
+      setFreeing(0);
+    }
+  }
 
   const dirty = rules && JSON.stringify(rules) !== saved;
   const set = (key) => (e) => setRules((r) => ({ ...r, [key]: e.target.value }));
@@ -143,11 +166,7 @@ export default function AdminSettings() {
                 Added to COD orders and treated as tax-inclusive at the goods rate.
               </p>
 
-              <p className="text-[11px] text-slate-500 border-t border-slate-100 pt-2.5">
-                <b className="tabular-nums">{blockedProducts}</b>{" "}
-                {blockedProducts === 1 ? "product has" : "products have"} cash on delivery switched off
-                individually — set that on the product itself.
-              </p>
+
             </div>
           </div>
 
@@ -195,6 +214,55 @@ export default function AdminSettings() {
               <p className="px-4 py-8 text-center text-sm text-slate-400">
                 Nobody is blocked. Add numbers from the Customers page.
               </p>
+            )}
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl lg:col-span-2">
+            <header className="px-4 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="text-[13.5px] font-semibold flex items-center gap-1.5">
+                  <PackageX size={14} className="text-amber-600" /> Products with cash on delivery switched off
+                </h2>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Any cart holding one of these loses the option. Set it per product, or here.
+                </p>
+              </div>
+              {codOffProducts.length > 0 && (
+                <button
+                  onClick={() => allowCod(codOffProducts.map((p) => p.id))}
+                  disabled={freeing > 0}
+                  className="px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-[11.5px] font-medium hover:bg-slate-50 disabled:opacity-40 inline-flex items-center gap-1.5"
+                >
+                  {freeing > 0 && <Loader2 size={11} className="animate-spin" />}
+                  Allow COD on all {codOffProducts.length}
+                </button>
+              )}
+            </header>
+
+            {codOffProducts.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-slate-400">
+                No product has cash on delivery switched off.
+              </p>
+            ) : (
+              <ul className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                {codOffProducts.map((p) => (
+                  <li key={p.id} className="flex items-center gap-3 px-4 py-2">
+                    {p.images?.[0]
+                      ? <img src={p.images[0].src} alt="" className="w-8 h-8 object-cover rounded border border-slate-200" />
+                      : <span className="w-8 h-8 rounded border border-dashed border-slate-300" />}
+                    <span className="flex-1 min-w-0 text-[12.5px] text-slate-800 truncate">{p.name}</span>
+                    <span className="text-[11.5px] tabular-nums text-slate-500 shrink-0">
+                      ₹{p.salePrice || p.price || p.regularPrice}
+                    </span>
+                    <button
+                      onClick={() => allowCod([p.id])}
+                      disabled={freeing > 0}
+                      className="text-[11.5px] font-semibold text-ayur-green hover:underline shrink-0 disabled:opacity-40"
+                    >
+                      Allow COD
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>

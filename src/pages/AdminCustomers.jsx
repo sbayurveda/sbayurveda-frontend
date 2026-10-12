@@ -3,7 +3,7 @@ import { Loader2, Search, AlertTriangle, ShieldOff } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   getAdminSession, clearAdminSession, isAdminApiConfigured, AdminAuthError, fetchCustomers,
-  blockCodPhone,
+  blockCodPhone, unblockCodPhone,
 } from "../api/adminApi";
 import AdminLogin from "../components/admin/AdminLogin";
 import AdminShell from "../components/admin/AdminShell";
@@ -30,6 +30,7 @@ export default function AdminCustomers() {
   const [repeat, setRepeat] = useState(false);
   const [risk, setRisk] = useState(false);
   const [sort, setSort] = useState("value");
+  const [blockedOnly, setBlockedOnly] = useState(false);
   const [loading, setLoading] = useState(false);
   const [blocking, setBlocking] = useState("");
 
@@ -46,7 +47,7 @@ export default function AdminCustomers() {
     const mine = ++requestId.current;
     setLoading(true);
     try {
-      const result = await fetchCustomers({ q, pays, repeat, risk, sort, perPage: 100 });
+      const result = await fetchCustomers({ q, pays, repeat, risk, blocked: blockedOnly, sort, perPage: 100 });
       if (mine !== requestId.current) return;
       setData(result);
     } catch (err) {
@@ -56,7 +57,7 @@ export default function AdminCustomers() {
     } finally {
       if (mine === requestId.current) setLoading(false);
     }
-  }, [q, pays, repeat, risk, sort, onAuthError]);
+  }, [q, pays, repeat, risk, blockedOnly, sort, onAuthError]);
 
   useEffect(() => {
     if (!session) return;
@@ -66,12 +67,17 @@ export default function AdminCustomers() {
 
   // The customer is never told. The option simply stops appearing for that
   // number, the way it does not appear for an order outside the value band.
-  async function block(c) {
+  async function toggleBlock(c) {
     setBlocking(c.phone);
     try {
-      await blockCodPhone(c.phone, `${c.cancelled} of ${c.placed} COD orders cancelled`);
-      toast.success(`${c.phone} is now prepaid only`);
-      load();
+      if (c.codBlocked) {
+        await unblockCodPhone(c.phone);
+        toast.success(`${c.phone} can pay on delivery again`);
+      } else {
+        await blockCodPhone(c.phone, `${c.cancelled} of ${c.placed} COD orders cancelled`);
+        toast.success(`${c.phone} is now prepaid only`);
+      }
+      await load();
     } catch (err) {
       if (err instanceof AdminAuthError) onAuthError(err);
       else toast.error(err.message);
@@ -121,18 +127,22 @@ export default function AdminCustomers() {
           </p>
           <div className="flex flex-wrap gap-1.5">
             {data.atRisk.map((c) => (
-              <span key={c.phone} className="bg-white border border-amber-300 rounded-lg pl-2.5 pr-1 py-1 text-[11px] flex items-center gap-2">
+              <span key={c.phone} className={`rounded-lg pl-2.5 pr-1 py-1 text-[11px] flex items-center gap-2 border ${
+                c.codBlocked ? "bg-slate-100 border-slate-300 text-slate-500 line-through decoration-slate-400" : "bg-white border-amber-300"
+              }`}>
                 <span>
                   <b className="tabular-nums">{c.phone}</b>
                   <span className="text-amber-800"> · {c.cancelled} of {c.placed} cancelled</span>
                 </span>
                 <button
-                  onClick={() => block(c)}
+                  onClick={() => toggleBlock(c)}
                   disabled={blocking === c.phone}
-                  className="px-1.5 py-0.5 rounded text-[10.5px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40 inline-flex items-center gap-1"
+                  className={`px-1.5 py-0.5 rounded text-[10.5px] font-semibold disabled:opacity-40 inline-flex items-center gap-1 ${
+                    c.codBlocked ? "text-slate-600 hover:bg-slate-100" : "text-red-700 hover:bg-red-50"
+                  }`}
                 >
                   {blocking === c.phone ? <Loader2 size={10} className="animate-spin" /> : <ShieldOff size={10} />}
-                  Block COD
+                  {c.codBlocked ? "Unblock" : "Block COD"}
                 </button>
               </span>
             ))}
@@ -173,6 +183,11 @@ export default function AdminCustomers() {
               risk ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
             }`}>COD risks</button>
 
+          <button onClick={() => setBlockedOnly((v) => !v)}
+            className={`px-2.5 py-1 rounded-lg text-[11.5px] font-medium border transition-colors ${
+              blockedOnly ? "bg-red-700 text-white border-red-700" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            }`}>Blocked{data?.blockedCount ? ` (${data.blockedCount})` : ""}</button>
+
           <label className="ml-auto flex items-center gap-1.5 text-[11.5px] text-slate-500">
             Sort
             <select value={sort} onChange={(e) => setSort(e.target.value)}
@@ -184,8 +199,8 @@ export default function AdminCustomers() {
             </select>
           </label>
 
-          {(pays !== "any" || repeat || risk || q) && (
-            <button onClick={() => { setPays("any"); setRepeat(false); setRisk(false); setQ(""); }}
+          {(pays !== "any" || repeat || risk || blockedOnly || q) && (
+            <button onClick={() => { setPays("any"); setRepeat(false); setRisk(false); setBlockedOnly(false); setQ(""); }}
               className="text-[11.5px] text-slate-500 underline hover:text-slate-800">Clear</button>
           )}
         </div>
@@ -194,8 +209,8 @@ export default function AdminCustomers() {
           <table className="w-full text-[12.5px] min-w-[720px]">
             <thead>
               <tr className="text-[10px] uppercase tracking-wide text-slate-400">
-                {["Customer", "Phone", "Orders", "Lifetime", "Avg order", "Pays", "Cancelled", "Last order"].map((h, i) => (
-                  <th key={h} className={`px-3 py-2 font-semibold border-b border-slate-100 whitespace-nowrap ${i >= 2 && i <= 4 ? "text-right" : i === 6 ? "text-right" : "text-left"}`}>{h}</th>
+                {["Customer", "Phone", "Orders", "Lifetime", "Avg order", "Pays", "COD", "Cancelled", "Last order"].map((h, i) => (
+                  <th key={h} className={`px-3 py-2 font-semibold border-b border-slate-100 whitespace-nowrap ${i >= 2 && i <= 4 ? "text-right" : i === 7 ? "text-right" : "text-left"}`}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -212,6 +227,20 @@ export default function AdminCustomers() {
                       c.pays === "cod" ? "bg-amber-50 text-amber-700"
                         : c.pays === "prepaid" ? "bg-green-50 text-green-700" : "bg-slate-100 text-slate-600"
                     }`}>{c.pays === "cod" ? "COD" : c.pays === "prepaid" ? "Prepaid" : "Mixed"}</span>
+                  </td>
+                  <td className="px-3 py-2.5 border-b border-slate-100">
+                    <button
+                      onClick={() => toggleBlock(c)}
+                      disabled={blocking === c.phone}
+                      title={c.codBlocked ? "Allow cash on delivery again" : "Stop offering cash on delivery to this number"}
+                      className={`px-2 py-0.5 rounded-full text-[10.5px] font-semibold border transition-colors disabled:opacity-40 ${
+                        c.codBlocked
+                          ? "bg-red-50 text-red-700 border-red-300 hover:bg-red-100"
+                          : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      {blocking === c.phone ? "…" : c.codBlocked ? "Blocked" : "Allowed"}
+                    </button>
                   </td>
                   <td className={`px-3 py-2.5 border-b border-slate-100 text-right tabular-nums ${c.cancelRate >= 40 ? "text-red-600 font-semibold" : "text-slate-500"}`}>
                     {c.cancelled}{c.cancelled > 0 ? ` (${c.cancelRate}%)` : ""}

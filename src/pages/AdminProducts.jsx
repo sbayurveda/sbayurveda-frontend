@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, ImageOff, FileText, IndianRupee, RefreshCw } from "lucide-react";
+import { Loader2, ImageOff, FileText, IndianRupee, RefreshCw, ShieldOff, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   getAdminSession, clearAdminSession, isAdminApiConfigured, AdminAuthError,
-  fetchProductCapabilities, fetchProductTaxonomy, fetchCatalogue,
+  fetchProductCapabilities, fetchProductTaxonomy, fetchCatalogue, setProductsCod,
 } from "../api/adminApi";
 import AdminLogin from "../components/admin/AdminLogin";
 import AdminShell from "../components/admin/AdminShell";
@@ -30,6 +30,11 @@ export default function AdminProducts() {
   const [scanned, setScanned] = useState(0);
   const [counts, setCounts] = useState(null);
   const [q, setQ] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [cod, setCod] = useState("any");
+  const [matchingIds, setMatchingIds] = useState([]);
+  const [applying, setApplying] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -58,11 +63,12 @@ export default function AdminProducts() {
     const mine = ++requestId.current;
     setLoading(true);
     try {
-      const d = await fetchCatalogue({ q, need, page, perPage: 25 });
+      const d = await fetchCatalogue({ q, need, cod, minPrice, maxPrice, page, perPage: 25 });
       if (mine !== requestId.current) return;
       setIncomplete(d.products || []);
       setScanned(d.total || 0);
       setCounts(d.counts || null);
+      setMatchingIds(d.matchingIds || []);
     } catch (err) {
       if (mine !== requestId.current) return;
       if (err instanceof AdminAuthError) handleAuthError(err);
@@ -70,7 +76,7 @@ export default function AdminProducts() {
     } finally {
       if (mine === requestId.current) setLoading(false);
     }
-  }, [page, need, q, handleAuthError]);
+  }, [page, need, q, cod, minPrice, maxPrice, handleAuthError]);
 
   useEffect(() => { if (session) loadIncomplete(); }, [session, loadIncomplete]);
 
@@ -83,6 +89,24 @@ export default function AdminProducts() {
         : prev.filter((p) => p.id !== saved.id),
     );
     if (editing?.id === saved.id) setEditing(saved.missing.length ? saved : null);
+  }
+
+  // Applies to everything behind the current filter, not just the page on
+  // screen — "every product over ₹2,000" is the rule someone wants to set, and
+  // paging through 340 of them to tick boxes is not a feature.
+  async function applyCod(codDisabled) {
+    if (!matchingIds.length || applying) return;
+    setApplying(true);
+    try {
+      const { updated } = await setProductsCod(matchingIds, codDisabled);
+      toast.success(`Cash on delivery ${codDisabled ? "switched off" : "allowed"} on ${updated} product${updated === 1 ? "" : "s"}`);
+      loadIncomplete();
+    } catch (err) {
+      if (err instanceof AdminAuthError) handleAuthError(err);
+      else toast.error(err.message);
+    } finally {
+      setApplying(false);
+    }
   }
 
   if (!isAdminApiConfigured()) {
@@ -125,6 +149,51 @@ export default function AdminProducts() {
               placeholder="Search all products by name, SKU or brand…"
               className="w-full mt-2.5 border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ayur-green/25"
             />
+            <div className="flex flex-wrap items-center gap-2 mt-2.5">
+              <span className="flex items-center gap-1.5 text-[11.5px] text-slate-500">
+                ₹
+                <input value={minPrice} onChange={(e) => { setMinPrice(e.target.value); setPage(1); }}
+                  placeholder="min" inputMode="numeric"
+                  className="w-20 border border-slate-200 rounded-lg px-2 py-1 text-[12px] tabular-nums focus:outline-none focus:ring-2 focus:ring-ayur-green/25" />
+                to
+                <input value={maxPrice} onChange={(e) => { setMaxPrice(e.target.value); setPage(1); }}
+                  placeholder="max" inputMode="numeric"
+                  className="w-20 border border-slate-200 rounded-lg px-2 py-1 text-[12px] tabular-nums focus:outline-none focus:ring-2 focus:ring-ayur-green/25" />
+              </span>
+
+              <span className="flex gap-1">
+                {[["any", "Any COD"], ["on", "COD on"], ["off", "COD off"]].map(([k, label]) => (
+                  <button key={k} onClick={() => { setCod(k); setPage(1); }}
+                    className={`px-2.5 py-1 rounded-lg text-[11.5px] font-medium border transition-colors ${
+                      cod === k ? "bg-ayur-green text-white border-ayur-green" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    }`}>{label}</button>
+                ))}
+              </span>
+
+              {(minPrice || maxPrice || cod !== "any" || q) && (
+                <button onClick={() => { setMinPrice(""); setMaxPrice(""); setCod("any"); setQ(""); setPage(1); }}
+                  className="text-[11.5px] text-slate-500 underline hover:text-slate-800">Clear</button>
+              )}
+            </div>
+
+            {matchingIds.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mt-2.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2">
+                <span className="text-[11.5px] text-slate-600">
+                  Apply to all <b className="tabular-nums">{matchingIds.length}</b> matching:
+                </span>
+                <button onClick={() => applyCod(true)} disabled={applying}
+                  className="px-2.5 py-1 rounded-lg border border-red-300 bg-white text-[11.5px] font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40 inline-flex items-center gap-1.5">
+                  {applying ? <Loader2 size={11} className="animate-spin" /> : <ShieldOff size={11} />}
+                  Switch COD off
+                </button>
+                <button onClick={() => applyCod(false)} disabled={applying}
+                  className="px-2.5 py-1 rounded-lg border border-slate-300 bg-white text-[11.5px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 inline-flex items-center gap-1.5">
+                  {applying ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />}
+                  Allow COD
+                </button>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-1.5 mt-2.5">
               {NEEDS.map((n) => (
                 <button
@@ -161,9 +230,13 @@ export default function AdminProducts() {
                       </span>}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-slate-800 truncate">{p.name}</p>
-                    {p.missing.length
-                      ? <p className="text-[11px] text-red-600">missing {p.missing.join(", ")}</p>
-                      : <p className="text-[11px] text-green-700">live · {p.sku || "no SKU"}</p>}
+                    <p className="text-[11px] flex flex-wrap items-center gap-x-2">
+                      {p.missing.length
+                        ? <span className="text-red-600">missing {p.missing.join(", ")}</span>
+                        : <span className="text-green-700">live</span>}
+                      <span className="text-slate-400 tabular-nums">₹{p.salePrice || p.price || p.regularPrice}</span>
+                      {p.codDisabled && <span className="text-amber-700 font-semibold">COD off</span>}
+                    </p>
                   </div>
                   <button onClick={() => setEditing(p)}
                           className="text-xs font-semibold text-ayur-green hover:underline shrink-0">
