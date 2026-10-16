@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Loader2, Upload, X, Star } from "lucide-react";
 import toast from "react-hot-toast";
 import { uploadProductImage, AdminAuthError } from "../../api/adminApi";
+import { prepareImage, looksLikeImage } from "../../utils/imageForUpload";
 
 // Images upload the moment they are dropped, not when the product is saved.
 // A five-field form that stalls for ten seconds on Save feels broken; this way
@@ -12,7 +13,19 @@ export default function ProductImageDrop({ images, onChange, productName, canUpl
   const inputRef = useRef(null);
 
   async function accept(fileList) {
-    const files = [...fileList].filter((f) => f.type.startsWith("image/"));
+    const dropped = [...fileList];
+    const files = dropped.filter(looksLikeImage);
+
+    // Dropping a file and having nothing whatsoever happen reads as a broken
+    // page. Say which ones were ignored and why.
+    const skipped = dropped.filter((f) => !looksLikeImage(f));
+    if (skipped.length) {
+      toast.error(
+        skipped.length === 1
+          ? `${skipped[0].name} isn't an image.`
+          : `${skipped.length} files were skipped — only images can be uploaded.`,
+      );
+    }
     if (!files.length) return;
     if (!canUpload) {
       toast.error("File upload isn't set up yet — paste an image URL instead.");
@@ -22,8 +35,12 @@ export default function ProductImageDrop({ images, onChange, productName, canUpl
     setBusy((n) => n + files.length);
     for (const file of files) {
       try {
+        // iPhone HEIC photos and anything over the 8MB cap are re-encoded here,
+        // in the browser, where the decoder already is. The server only ever
+        // sees something WordPress can publish.
+        const { file: ready } = await prepareImage(file);
         const { image } = await uploadProductImage({
-          file,
+          file: ready,
           productName,
           // Alt text is what a screen reader announces and what Google reads.
           altText: productName,
@@ -57,7 +74,7 @@ export default function ProductImageDrop({ images, onChange, productName, canUpl
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,.heic,.heif"
           multiple
           hidden
           onChange={(e) => { accept(e.target.files); e.target.value = ""; }}
@@ -72,7 +89,7 @@ export default function ProductImageDrop({ images, onChange, productName, canUpl
           </span>
         )}
         <p className="text-[10px] text-slate-400 mt-1">
-          JPG, PNG or WebP · up to 8MB each · the first image is the one customers see in listings
+          JPG, PNG, WebP or iPhone HEIC · large photos are shrunk automatically · the first image is the one customers see in listings
         </p>
       </div>
 
