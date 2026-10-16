@@ -178,11 +178,23 @@ export function setProductsCod(productIds, codDisabled) {
   return adminSend("/api/admin/products/cod", "POST", { productIds, codDisabled });
 }
 
-export function fetchCustomers({ q = "", pays = "any", repeat = false, risk = false, blocked = false, sort = "value", page = 1, perPage = 50 } = {}) {
+export function fetchCustomers({
+  q = "", pays = "any", repeat = false, risk = false, blocked = false, sort = "value",
+  minValue = "", maxValue = "", minOrders = "", maxOrders = "", minCancelled = "",
+  activeWithin = "", dormantFor = "", state = "",
+  page = 1, perPage = 50,
+} = {}) {
   const params = new URLSearchParams({ q, pays, sort, page, perPage });
   if (repeat) params.set("repeat", "true");
   if (risk) params.set("risk", "true");
   if (blocked) params.set("blocked", "true");
+  // Only send a bound that was actually filled in: an empty string would be
+  // read as a limit of zero and exclude everyone.
+  for (const [key, value] of Object.entries({
+    minValue, maxValue, minOrders, maxOrders, minCancelled, activeWithin, dormantFor, state,
+  })) {
+    if (value !== "" && value != null) params.set(key, value);
+  }
   return adminGet(`/api/admin/customers?${params}`);
 }
 

@@ -20,6 +20,30 @@ function Stat({ label, value, note, tone }) {
   );
 }
 
+// A min-max pair, written once because the customers screen needs three of them
+// and the Products screen already reads this way for price.
+function Range({ label, prefix = "", value, onChange, keys: [minKey, maxKey] }) {
+  const box = (key, placeholder) => (
+    <span className="inline-flex items-center">
+      {prefix && <span className="text-slate-400 pr-0.5">{prefix}</span>}
+      <input
+        type="number" min="0" inputMode="numeric" placeholder={placeholder}
+        value={value[key]}
+        onChange={(e) => onChange((r) => ({ ...r, [key]: e.target.value }))}
+        className="w-16 border border-slate-200 rounded-lg px-1.5 py-1 text-[11.5px] tabular-nums focus:outline-none focus:ring-2 focus:ring-ayur-green/25"
+      />
+    </span>
+  );
+  return (
+    <label className="flex items-center gap-1.5 text-[11.5px] text-slate-500">
+      {label}
+      {box(minKey, "min")}
+      <span className="text-slate-400">–</span>
+      {box(maxKey, "max")}
+    </label>
+  );
+}
+
 export default function AdminCustomers() {
   useSeo({ title: "Customers — Admin", path: "/admin/customers", noindex: true });
 
@@ -31,12 +55,34 @@ export default function AdminCustomers() {
   const [risk, setRisk] = useState(false);
   const [sort, setSort] = useState("value");
   const [blockedOnly, setBlockedOnly] = useState(false);
+  // The numbers in the table, now askable. Held as strings so a cleared box is
+  // empty rather than zero — a limit of zero would exclude everyone.
+  const [range, setRange] = useState({
+    minValue: "", maxValue: "", minOrders: "", maxOrders: "", minCancelled: "",
+  });
+  // One control, two directions: recent activity and dormancy are the same
+  // date read for different purposes, so they share a dropdown.
+  const [seen, setSeen] = useState("any");
+  const [state, setState] = useState("");
   const [loading, setLoading] = useState(false);
   const [blocking, setBlocking] = useState("");
 
   const onAuthError = useCallback((err) => {
     clearAdminSession(); setSession(null); toast.error(err.message);
   }, []);
+
+  // Clear has to reset every filter, including the ones in the second row.
+  // One left behind is worse than no Clear button, because the list then
+  // disagrees with controls that all look idle.
+  const anyFilter =
+    pays !== "any" || repeat || risk || blockedOnly || q || state || seen !== "any" ||
+    Object.values(range).some((v) => v !== "");
+
+  const clearFilters = () => {
+    setPays("any"); setRepeat(false); setRisk(false); setBlockedOnly(false); setQ("");
+    setState(""); setSeen("any");
+    setRange({ minValue: "", maxValue: "", minOrders: "", maxOrders: "", minCancelled: "" });
+  };
 
   // Filters and typing both fire requests, and they do not return in order.
   // Only the newest answer may write to the screen, or a slower earlier one
@@ -47,7 +93,12 @@ export default function AdminCustomers() {
     const mine = ++requestId.current;
     setLoading(true);
     try {
-      const result = await fetchCustomers({ q, pays, repeat, risk, blocked: blockedOnly, sort, perPage: 100 });
+      const result = await fetchCustomers({
+        q, pays, repeat, risk, blocked: blockedOnly, sort, state, ...range,
+        activeWithin: seen.startsWith("in") ? seen.slice(2) : "",
+        dormantFor: seen.startsWith("out") ? seen.slice(3) : "",
+        perPage: 100,
+      });
       if (mine !== requestId.current) return;
       setData(result);
     } catch (err) {
@@ -57,7 +108,7 @@ export default function AdminCustomers() {
     } finally {
       if (mine === requestId.current) setLoading(false);
     }
-  }, [q, pays, repeat, risk, blockedOnly, sort, onAuthError]);
+  }, [q, pays, repeat, risk, blockedOnly, sort, state, seen, range, onAuthError]);
 
   useEffect(() => {
     if (!session) return;
@@ -199,10 +250,53 @@ export default function AdminCustomers() {
             </select>
           </label>
 
-          {(pays !== "any" || repeat || risk || blockedOnly || q) && (
-            <button onClick={() => { setPays("any"); setRepeat(false); setRisk(false); setBlockedOnly(false); setQ(""); }}
+          {anyFilter && (
+            <button onClick={clearFilters}
               className="text-[11.5px] text-slate-500 underline hover:text-slate-800">Clear</button>
           )}
+        </div>
+
+        {/* The table's own numbers, made askable. Until now the only way to
+            find everyone worth more than two thousand rupees, or everyone who
+            has not ordered since June, was to sort a column and scroll. */}
+        <div className="px-3.5 py-2 border-b border-slate-100 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Range label="Lifetime" prefix="₹" value={range} onChange={setRange} keys={["minValue", "maxValue"]} />
+          <Range label="Orders" value={range} onChange={setRange} keys={["minOrders", "maxOrders"]} />
+
+          <label className="flex items-center gap-1.5 text-[11.5px] text-slate-500">
+            Cancelled
+            <span className="text-slate-400">≥</span>
+            <input
+              type="number" min="0" inputMode="numeric" placeholder="any"
+              value={range.minCancelled}
+              onChange={(e) => setRange((r) => ({ ...r, minCancelled: e.target.value }))}
+              className="w-14 border border-slate-200 rounded-lg px-1.5 py-1 text-[11.5px] tabular-nums focus:outline-none focus:ring-2 focus:ring-ayur-green/25"
+            />
+          </label>
+
+          <label className="flex items-center gap-1.5 text-[11.5px] text-slate-500">
+            Last order
+            <select value={seen} onChange={(e) => setSeen(e.target.value)}
+              className="border border-slate-200 rounded-lg px-2 py-1 text-[11.5px] bg-white text-slate-700">
+              <option value="any">Any time</option>
+              <option value="in30">Within 30 days</option>
+              <option value="in90">Within 90 days</option>
+              <option value="out90">Not for 90 days</option>
+              <option value="out180">Not for 6 months</option>
+              <option value="out365">Not for a year</option>
+            </select>
+          </label>
+
+          <label className="flex items-center gap-1.5 text-[11.5px] text-slate-500">
+            State
+            <select value={state} onChange={(e) => setState(e.target.value)}
+              className="border border-slate-200 rounded-lg px-2 py-1 text-[11.5px] bg-white text-slate-700 max-w-[11rem]">
+              {/* Only the states customers are actually in, so no option here
+                  matches nothing. */}
+              <option value="">Everywhere</option>
+              {(data?.states || []).map((st) => <option key={st} value={st}>{st}</option>)}
+            </select>
+          </label>
         </div>
 
         <div className="overflow-x-auto">
