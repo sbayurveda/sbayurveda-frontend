@@ -3,7 +3,7 @@ import { Loader2, ImageOff, FileText, IndianRupee, RefreshCw, ShieldOff, ShieldC
 import toast from "react-hot-toast";
 import {
   getAdminSession, clearAdminSession, isAdminApiConfigured, AdminAuthError,
-  fetchProductCapabilities, fetchProductTaxonomy, fetchCatalogue, setProductsCod,
+  fetchProductCapabilities, fetchProductTaxonomy, fetchCatalogue, setProductsCod, setProductsHsn,
 } from "../api/adminApi";
 import AdminLogin from "../components/admin/AdminLogin";
 import AdminShell from "../components/admin/AdminShell";
@@ -34,6 +34,8 @@ export default function AdminProducts() {
   const [maxPrice, setMaxPrice] = useState("");
   const [cod, setCod] = useState("any");
   const [matchingIds, setMatchingIds] = useState([]);
+  const [withoutHsn, setWithoutHsn] = useState(0);
+  const [hsnIds, setHsnIds] = useState([]);
   const [applying, setApplying] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -69,6 +71,8 @@ export default function AdminProducts() {
       setScanned(d.total || 0);
       setCounts(d.counts || null);
       setMatchingIds(d.matchingIds || []);
+      setWithoutHsn(d.withoutHsn || 0);
+      setHsnIds(d.hsnMissingIds || []);
     } catch (err) {
       if (mine !== requestId.current) return;
       if (err instanceof AdminAuthError) handleAuthError(err);
@@ -89,6 +93,24 @@ export default function AdminProducts() {
         : prev.filter((p) => p.id !== saved.id),
     );
     if (editing?.id === saved.id) setEditing(saved.missing.length ? saved : null);
+  }
+
+  // The tax report treats a blank code as 3004 and always has, so this changes
+  // no figure — it writes down what the return already assumes, so a product
+  // opened in wp-admin shows the same code the filing used.
+  async function stampHsn() {
+    if (!hsnIds.length || applying) return;
+    setApplying(true);
+    try {
+      const { updated } = await setProductsHsn(hsnIds, "3004");
+      toast.success(`HSN 3004 set on ${updated} product${updated === 1 ? "" : "s"}`);
+      loadIncomplete();
+    } catch (err) {
+      if (err instanceof AdminAuthError) handleAuthError(err);
+      else toast.error(err.message);
+    } finally {
+      setApplying(false);
+    }
   }
 
   // Applies to everything behind the current filter, not just the page on
@@ -175,6 +197,22 @@ export default function AdminProducts() {
                   className="text-[11.5px] text-slate-500 underline hover:text-slate-800">Clear</button>
               )}
             </div>
+
+            {withoutHsn > 0 && (
+              <div className="flex flex-wrap items-center gap-2 px-3.5 py-2 border-b border-slate-100 bg-amber-50/60">
+                <span className="text-[11.5px] text-slate-600">
+                  <b className="tabular-nums">{withoutHsn}</b> product{withoutHsn === 1 ? " has" : "s have"} no HSN code.
+                  The tax report already treats {withoutHsn === 1 ? "it" : "them"} as 3004.
+                </span>
+                <button
+                  onClick={stampHsn}
+                  disabled={applying || !hsnIds.length}
+                  className="px-2.5 py-1 rounded-lg text-[11.5px] font-semibold border bg-white text-slate-700 border-slate-300 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {applying ? "Setting…" : `Set HSN 3004 on ${hsnIds.length}`}
+                </button>
+              </div>
+            )}
 
             {matchingIds.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 mt-2.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-2">

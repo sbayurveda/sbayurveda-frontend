@@ -18,7 +18,10 @@ function Field({ label, hint, children }) {
 }
 
 const EMPTY = {
-  name: "", mrp: "", price: "", sku: "", stockQty: "", hsn: "", codDisabled: false,
+  // 3004 is ayurvedic medicaments at 5%, which is what 506 of the 507 lines in
+  // the reference month carried. Prefilling it means a new product arrives with
+  // the code already written rather than leaning on the report's fallback.
+  name: "", mrp: "", price: "", sku: "", stockQty: "", hsn: "3004", codDisabled: false,
   description: "", shortDescription: "", categoryIds: [], brandIds: [], images: [],
 };
 

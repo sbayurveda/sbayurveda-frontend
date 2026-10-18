@@ -141,9 +141,14 @@ export default function OrderTable({ orders, selectedIds, onToggle, onToggleAll,
                   </td>
                   <td className="px-3 py-2.5"><Badge meta={deliveryMeta(order)} /></td>
                   <td className="px-3 py-2.5 whitespace-nowrap text-slate-500 font-mono text-[11px]">{order.transactionId || "—"}</td>
-                  <td className="px-3 py-2.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                  {/* The cell used to swallow every click so the courier link
+                      would work, which made the whole column dead: clicking a
+                      row anywhere along it did nothing. Only the link itself
+                      needs to stop the row from opening. */}
+                  <td className="px-3 py-2.5 whitespace-nowrap">
                     {order.trackingUrl ? (
                       <a href={order.trackingUrl} target="_blank" rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
                         className="inline-flex items-center gap-1 text-blue-700 hover:underline text-xs font-semibold">
                         {order.trackingCode || "Track"} <ExternalLink size={11} />
                       </a>

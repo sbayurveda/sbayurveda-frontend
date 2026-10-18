@@ -164,8 +164,9 @@ export function resyncStore() {
   return adminSend("/api/admin/store/sync", "POST", {});
 }
 
-export function fetchCatalogue({ q = "", need = "", cod = "any", minPrice = "", maxPrice = "", page = 1, perPage = 50 } = {}) {
+export function fetchCatalogue({ q = "", need = "", cod = "any", hsn = "", minPrice = "", maxPrice = "", page = 1, perPage = 50 } = {}) {
   const params = new URLSearchParams({ q, need, cod, page, perPage });
+  if (hsn) params.set("hsn", hsn);
   if (minPrice !== "") params.set("minPrice", minPrice);
   if (maxPrice !== "") params.set("maxPrice", maxPrice);
   return adminGet(`/api/admin/catalogue?${params}`);
@@ -176,6 +177,12 @@ export function fetchCatalogue({ q = "", need = "", cod = "any", minPrice = "", 
 // hundred.
 export function setProductsCod(productIds, codDisabled) {
   return adminSend("/api/admin/products/cod", "POST", { productIds, codDisabled });
+}
+
+// Writes an HSN code onto many products. The tax report already assumes 3004
+// where one is missing; this makes the catalogue say so.
+export function setProductsHsn(productIds, hsn = "3004") {
+  return adminSend("/api/admin/products/hsn", "POST", { productIds, hsn });
 }
 
 export function fetchCustomers({
