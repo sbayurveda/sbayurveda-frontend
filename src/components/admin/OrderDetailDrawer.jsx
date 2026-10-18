@@ -4,6 +4,7 @@ import { X, ExternalLink, Loader2, StickyNote } from "lucide-react";
 import { fetchOrderNotes, AdminAuthError } from "../../api/adminApi";
 import { sanitizeDescriptionHtml } from "../../utils/sanitizeHtml";
 import OrderEditPanel from "./OrderEditPanel";
+import InvoicePanel from "./InvoicePanel";
 import {
   customerName, deliveryMeta, formatAddress, formatDateTime, formatMoney,
   isCod, paymentMeta, statusMeta,
@@ -138,6 +139,10 @@ export default function OrderDetailDrawer({ order, onClose, onAuthError, onUpdat
               <Row label="Method" value={order.paymentMethodTitle || order.paymentMethod} />
               <Row label="Transaction ID" value={order.transactionId} mono />
               <Row label="Paid on" value={order.datePaid ? formatDateTime(order.datePaid) : (isCod(order) ? "Collect on delivery" : "Not paid")} />
+            </Section>
+
+            <Section title="Tax invoice">
+              <InvoicePanel order={order} onAuthError={onAuthError} />
             </Section>
 
             <Section title={`Items (${order.lineItems?.length || 0})`}>

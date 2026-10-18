@@ -205,6 +205,19 @@ export function fetchCustomers({
   return adminGet(`/api/admin/customers?${params}`);
 }
 
+// --- Invoices --------------------------------------------------------------
+//
+// The server builds these from the same rows the GST return is built from, so
+// the document and the filing cannot drift apart.
+
+export function fetchInvoice(orderId) {
+  return adminGet(`/api/admin/orders/${orderId}/invoice`);
+}
+
+export function fetchInvoices(orderIds) {
+  return adminSend("/api/admin/invoices", "POST", { orderIds });
+}
+
 // --- Tax -------------------------------------------------------------------
 
 export function fetchTaxReport({ from, to }) {
