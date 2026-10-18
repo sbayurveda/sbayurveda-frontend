@@ -96,7 +96,7 @@ export default function ProductImageDrop({ images, onChange, productName, canUpl
       {images.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2.5">
           {images.map((img, idx) => (
-            <div key={img.id || img.src} className="relative group">
+            <div key={img.id || img.stagedAs || img.src} className="relative group">
               <img
                 src={img.src}
                 alt=""

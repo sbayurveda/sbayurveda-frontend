@@ -80,7 +80,16 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
         shortDescription: form.shortDescription,
         categoryIds: form.categoryIds,
         brandIds: form.brandIds,
-        images: form.images.map((i) => (i.id ? { id: i.id } : { src: i.src })),
+        // Only a library image has an attachment id, and it is an integer.
+        // A freshly staged upload is identified by a filename, and treating
+        // that as an id sent {id: "mv…-photo.jpg"} with no src at all — the
+        // request WooCommerce refused with "images[0][id] is not of type
+        // integer", which is why uploading a new photo never worked.
+        images: form.images.map((i) =>
+          Number.isInteger(Number(i.id)) && Number(i.id) > 0
+            ? { id: Number(i.id) }
+            : { src: i.src },
+        ),
       };
       const { product: saved } = isEdit
         ? await updateProduct(product.id, payload)

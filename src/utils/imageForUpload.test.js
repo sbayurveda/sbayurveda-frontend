@@ -70,3 +70,36 @@ describe("preparing a file for upload", () => {
     await expect(prepareImage(heic)).rejects.toThrow(/HEIC|Most Compatible/);
   });
 });
+
+// The payload the form actually builds — the step that was wrong, and the one
+// my earlier server-side test bypassed by hand-writing {src} itself.
+function imagesForSave(images) {
+  return images.map((i) =>
+    Number.isInteger(Number(i.id)) && Number(i.id) > 0 ? { id: Number(i.id) } : { src: i.src },
+  );
+}
+
+describe("the images the product form sends", () => {
+  it("sends a freshly staged upload as a src", () => {
+    expect(imagesForSave([{ stagedAs: "mv1-ab12-photo.jpg", src: "https://api/media/mv1-ab12-photo.jpg" }]))
+      .toEqual([{ src: "https://api/media/mv1-ab12-photo.jpg" }]);
+  });
+
+  it("sends an existing library image as its attachment id", () => {
+    expect(imagesForSave([{ id: 8412, src: "https://old/wp-content/a.jpg" }])).toEqual([{ id: 8412 }]);
+  });
+
+  it("never sends a non-integer id, whatever is in state", () => {
+    // A browser still holding the old staged shape must not resend it.
+    for (const bad of [{ id: "mv1-ab12-photo.jpg", src: "u" }, { id: "", src: "u" }, { id: 0, src: "u" }]) {
+      expect(imagesForSave([bad])).toEqual([{ src: "u" }]);
+    }
+  });
+
+  it("keeps a mixed set in order", () => {
+    expect(imagesForSave([
+      { id: 8412, src: "a" },
+      { stagedAs: "mv1-ab12-b.jpg", src: "b" },
+    ])).toEqual([{ id: 8412 }, { src: "b" }]);
+  });
+});
