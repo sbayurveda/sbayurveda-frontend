@@ -254,6 +254,28 @@ export async function downloadTaxCsv({ from, to }) {
   return { blob: await res.blob(), filename: `MTR_B2C_${from}_to_${to}.csv` };
 }
 
+// --- The catalogue as a spreadsheet ----------------------------------------
+
+export async function downloadCatalogueCsv() {
+  const session = getAdminSession();
+  if (!session) throw new AdminAuthError("Your session has expired. Please sign in again.");
+  const res = await fetch(`${API_BASE}/api/admin/catalogue/export`, {
+    headers: { Authorization: `Bearer ${session.token}` },
+  });
+  if (res.status === 401) {
+    clearAdminSession();
+    throw new AdminAuthError("Your session has expired. Please sign in again.");
+  }
+  if (!res.ok) throw new Error("Could not build the product file.");
+  return { blob: await res.blob(), filename: `products-${new Date().toISOString().slice(0, 10)}.csv` };
+}
+
+// `apply` false asks what the file would do without writing anything. Nobody
+// should find out what a spreadsheet did by looking at the shop afterwards.
+export function importCatalogue(csv, apply = false) {
+  return adminSend("/api/admin/catalogue/import", "POST", { csv, apply });
+}
+
 // --- Banners ---------------------------------------------------------------
 
 export function fetchBanners() {

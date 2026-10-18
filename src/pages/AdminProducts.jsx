@@ -8,6 +8,7 @@ import {
 import AdminLogin from "../components/admin/AdminLogin";
 import AdminShell from "../components/admin/AdminShell";
 import ProductForm from "../components/admin/ProductForm";
+import CatalogueTransfer from "../components/admin/CatalogueTransfer";
 import { useSeo } from "../utils/useSeo";
 
 const NEEDS = [
@@ -232,6 +233,10 @@ export default function AdminProducts() {
                 <button onClick={() => { setMinPrice(""); setMaxPrice(""); setCod("any"); setStock("any"); setQ(""); setPage(1); }}
                   className="text-[11.5px] text-slate-500 underline hover:text-slate-800">Clear</button>
               )}
+            </div>
+
+            <div className="px-3.5 py-2.5 border-b border-slate-100">
+              <CatalogueTransfer onAuthError={handleAuthError} onImported={loadIncomplete} />
             </div>
 
             {withoutHsn > 0 && (
