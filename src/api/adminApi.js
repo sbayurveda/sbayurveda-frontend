@@ -107,8 +107,11 @@ async function adminSend(path, method, body) {
 
 // Pass only the fields being changed. For tracking, an omitted field is left
 // alone and an empty string clears it.
-export async function updateOrder(orderId, { status, tracking } = {}) {
-  return adminSend(`/api/admin/orders/${orderId}`, "PATCH", { status, tracking });
+// `markPaid` records that cash was collected and is deliberately separate from
+// `status`: dispatching a parcel is not payment, and the two must be able to
+// travel independently.
+export async function updateOrder(orderId, { status, tracking, markPaid } = {}) {
+  return adminSend(`/api/admin/orders/${orderId}`, "PATCH", { status, tracking, markPaid });
 }
 
 export async function addOrderNote(orderId, note, { customerNote = false } = {}) {
@@ -209,6 +212,12 @@ export function fetchCustomers({
 //
 // The server builds these from the same rows the GST return is built from, so
 // the document and the filing cannot drift apart.
+
+// What else this phone number has ordered — shown beside the order being
+// worked on, because it is what decides whether a COD parcel should go out.
+export function fetchCustomerHistory(orderId) {
+  return adminGet(`/api/admin/orders/${orderId}/customer`);
+}
 
 export function fetchInvoice(orderId) {
   return adminGet(`/api/admin/orders/${orderId}/invoice`);

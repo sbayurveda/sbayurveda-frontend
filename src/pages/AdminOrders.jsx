@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
   RefreshCw, Download, Loader2, ChevronLeft, ChevronRight,
-  Package, IndianRupee, Clock, AlertCircle,
+  Package, IndianRupee, Clock, AlertCircle, FileText,
 } from "lucide-react";
-import { AdminAuthError, clearAdminSession, fetchAdminOrders, getAdminSession, updateOrder } from "../api/adminApi";
+import {
+  AdminAuthError, clearAdminSession, fetchAdminOrders, getAdminSession, updateOrder, fetchInvoices,
+} from "../api/adminApi";
 import AdminLogin from "../components/admin/AdminLogin";
 import AdminShell from "../components/admin/AdminShell";
 import OrderFilters from "../components/admin/OrderFilters";
@@ -12,6 +14,7 @@ import { EMPTY_FILTERS } from "../utils/adminFilters";
 import OrderTable from "../components/admin/OrderTable";
 import OrderDetailDrawer from "../components/admin/OrderDetailDrawer";
 import ExportDialog from "../components/admin/ExportDialog";
+import { invoicesPdf } from "../utils/invoicePdf";
 import AnalyticsPanel from "../components/admin/AnalyticsPanel";
 import { ORDER_STATUSES, customerName, formatMoney, paymentMeta, productSummary } from "../utils/adminFormat";
 import { useSeo } from "../utils/useSeo";
@@ -281,6 +284,73 @@ export default function AdminOrders() {
     else toast.success(`Updated ${done} order${done > 1 ? "s" : ""}`);
   }
 
+  // Cash collected, recorded as its own fact.
+  //
+  // Only offered for orders where cash could actually have changed hands:
+  // cash on delivery, not already paid, and not dead. Marking a prepaid order
+  // "collected" is meaningless, re-stamping a paid one moves its payment date,
+  // and a cancelled parcel never reached anyone to collect from — writing
+  // payment onto one puts money in the books that was never received.
+  const codToCollect = useMemo(
+    () => selectedOrders.filter(
+      (o) => paymentMeta(o).key === "cod"
+        && !o.isPaid
+        && !["cancelled", "refunded", "failed"].includes(o.status),
+    ),
+    [selectedOrders],
+  );
+
+  async function markCodCollected() {
+    if (!codToCollect.length || bulkBusy) return;
+    setBulkBusy(true);
+    let done = 0;
+    let failed = 0;
+    // Sequential, like the status change: these are writes to the live shop.
+    for (const order of codToCollect) {
+      try {
+        const { order: updated } = await updateOrder(order.id, { markPaid: true });
+        handleOrderUpdated(updated);
+        done += 1;
+      } catch (err) {
+        if (err instanceof AdminAuthError) {
+          handleAuthError(err);
+          setBulkBusy(false);
+          return;
+        }
+        failed += 1;
+      }
+    }
+    setBulkBusy(false);
+    if (failed) toast.error(`Recorded ${done} as collected, but ${failed} failed.`);
+    else toast.success(`${done} order${done > 1 ? "s" : ""} marked as cash collected`);
+  }
+
+  // One PDF holding every selected invoice, for filing a batch of claims.
+  async function printInvoices() {
+    if (!selectedOrders.length || bulkBusy) return;
+    setBulkBusy(true);
+    try {
+      const { invoices, failed } = await fetchInvoices(selectedOrders.map((o) => o.id));
+      if (!invoices.length) {
+        toast.error("None of those orders could be invoiced.");
+        return;
+      }
+      invoicesPdf(invoices).save(`Invoices-${invoices.length}.pdf`);
+      // Orders that could not be invoiced are named rather than silently
+      // missing from a file someone is about to file a claim with.
+      if (failed?.length) {
+        toast.error(`${invoices.length} invoices downloaded; ${failed.length} could not be built.`);
+      } else {
+        toast.success(`${invoices.length} invoice${invoices.length > 1 ? "s" : ""} downloaded`);
+      }
+    } catch (err) {
+      if (err instanceof AdminAuthError) handleAuthError(err);
+      else toast.error(err.message || "Could not build those invoices.");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   function handleSort(key) {
     setSort((prev) =>
       prev.key === key ? { key, dir: prev.dir === "asc" ? "desc" : "asc" } : { key, dir: "desc" }
@@ -407,6 +477,27 @@ export default function AdminOrders() {
                 <Loader2 size={13} className="animate-spin" /> Updating…
               </span>
             )}
+            <button
+              onClick={printInvoices}
+              disabled={bulkBusy}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              <FileText size={13} /> Invoices ({selectedOrders.length})
+            </button>
+
+            <button
+              onClick={markCodCollected}
+              disabled={bulkBusy || !codToCollect.length}
+              title={
+                codToCollect.length
+                  ? `Record cash received for ${codToCollect.length} order${codToCollect.length > 1 ? "s" : ""}`
+                  : "None of the selected orders are unpaid cash on delivery"
+              }
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              <IndianRupee size={13} /> COD collected ({codToCollect.length})
+            </button>
+
             <button
               onClick={() => setExportOpen(true)}
               className="ml-auto text-xs font-semibold text-ayur-green hover:underline"
