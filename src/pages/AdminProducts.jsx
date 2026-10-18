@@ -3,7 +3,7 @@ import { Loader2, ImageOff, FileText, IndianRupee, RefreshCw, ShieldOff, ShieldC
 import toast from "react-hot-toast";
 import {
   getAdminSession, clearAdminSession, isAdminApiConfigured, AdminAuthError,
-  fetchProductCapabilities, fetchProductTaxonomy, fetchCatalogue, setProductsCod, setProductsHsn,
+  fetchProductCapabilities, fetchProductTaxonomy, fetchCatalogue, setProductsCod, setProductsHsn, setProductsStock,
 } from "../api/adminApi";
 import AdminLogin from "../components/admin/AdminLogin";
 import AdminShell from "../components/admin/AdminShell";
@@ -34,6 +34,8 @@ export default function AdminProducts() {
   const [maxPrice, setMaxPrice] = useState("");
   const [cod, setCod] = useState("any");
   const [matchingIds, setMatchingIds] = useState([]);
+  const [stock, setStock] = useState("any");
+  const [bulkQty, setBulkQty] = useState("");
   const [withoutHsn, setWithoutHsn] = useState(0);
   const [hsnIds, setHsnIds] = useState([]);
   const [applying, setApplying] = useState(false);
@@ -65,7 +67,7 @@ export default function AdminProducts() {
     const mine = ++requestId.current;
     setLoading(true);
     try {
-      const d = await fetchCatalogue({ q, need, cod, minPrice, maxPrice, page, perPage: 25 });
+      const d = await fetchCatalogue({ q, need, cod, stock, minPrice, maxPrice, page, perPage: 25 });
       if (mine !== requestId.current) return;
       setIncomplete(d.products || []);
       setScanned(d.total || 0);
@@ -80,7 +82,7 @@ export default function AdminProducts() {
     } finally {
       if (mine === requestId.current) setLoading(false);
     }
-  }, [page, need, q, cod, minPrice, maxPrice, handleAuthError]);
+  }, [page, need, q, cod, stock, minPrice, maxPrice, handleAuthError]);
 
   useEffect(() => { if (session) loadIncomplete(); }, [session, loadIncomplete]);
 
@@ -93,6 +95,31 @@ export default function AdminProducts() {
         : prev.filter((p) => p.id !== saved.id),
     );
     if (editing?.id === saved.id) setEditing(saved.missing.length ? saved : null);
+  }
+
+  // "Everything from this supplier is out of stock" is the instruction someone
+  // actually has after a phone call, and it applies to the whole filtered set
+  // rather than to the page on screen.
+  async function applyStock(mode) {
+    if (!matchingIds.length || applying) return;
+    if (mode === "tracked" && bulkQty === "") {
+      toast.error("Enter the quantity to set first.");
+      return;
+    }
+    setApplying(true);
+    try {
+      const { updated } = await setProductsStock(matchingIds, mode, bulkQty === "" ? 0 : Number(bulkQty));
+      const said = mode === "out" ? "marked out of stock"
+        : mode === "unlimited" ? "set to unlimited stock"
+        : `set to ${Number(bulkQty)} in stock`;
+      toast.success(`${updated} product${updated === 1 ? "" : "s"} ${said}`);
+      loadIncomplete();
+    } catch (err) {
+      if (err instanceof AdminAuthError) handleAuthError(err);
+      else toast.error(err.message);
+    } finally {
+      setApplying(false);
+    }
   }
 
   // The tax report treats a blank code as 3004 and always has, so this changes
@@ -192,8 +219,17 @@ export default function AdminProducts() {
                 ))}
               </span>
 
-              {(minPrice || maxPrice || cod !== "any" || q) && (
-                <button onClick={() => { setMinPrice(""); setMaxPrice(""); setCod("any"); setQ(""); setPage(1); }}
+              <span className="flex gap-1">
+                {[["any", "Any stock"], ["unlimited", "Unlimited"], ["tracked", "Tracked"], ["out", "Out of stock"]].map(([k, label]) => (
+                  <button key={k} onClick={() => { setStock(k); setPage(1); }}
+                    className={`px-2.5 py-1 rounded-lg text-[11.5px] font-medium border transition-colors ${
+                      stock === k ? "bg-ayur-green text-white border-ayur-green" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    }`}>{label}</button>
+                ))}
+              </span>
+
+              {(minPrice || maxPrice || cod !== "any" || stock !== "any" || q) && (
+                <button onClick={() => { setMinPrice(""); setMaxPrice(""); setCod("any"); setStock("any"); setQ(""); setPage(1); }}
                   className="text-[11.5px] text-slate-500 underline hover:text-slate-800">Clear</button>
               )}
             </div>
@@ -229,6 +265,26 @@ export default function AdminProducts() {
                   {applying ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />}
                   Allow COD
                 </button>
+
+                <span className="w-px h-5 bg-slate-200" />
+
+                <button onClick={() => applyStock("out")} disabled={applying}
+                  className="px-2.5 py-1 rounded-lg text-[11.5px] font-semibold border bg-white text-slate-700 border-slate-300 hover:bg-slate-50 disabled:opacity-50">
+                  Mark out of stock
+                </button>
+                <button onClick={() => applyStock("unlimited")} disabled={applying}
+                  className="px-2.5 py-1 rounded-lg text-[11.5px] font-semibold border bg-white text-slate-700 border-slate-300 hover:bg-slate-50 disabled:opacity-50">
+                  Unlimited stock
+                </button>
+                <span className="inline-flex items-center gap-1">
+                  <input value={bulkQty} onChange={(e) => setBulkQty(e.target.value)}
+                    placeholder="qty" inputMode="numeric"
+                    className="w-14 border border-slate-200 rounded-lg px-1.5 py-1 text-[11.5px] tabular-nums focus:outline-none focus:ring-2 focus:ring-ayur-green/25" />
+                  <button onClick={() => applyStock("tracked")} disabled={applying}
+                    className="px-2.5 py-1 rounded-lg text-[11.5px] font-semibold border bg-white text-slate-700 border-slate-300 hover:bg-slate-50 disabled:opacity-50">
+                    Set qty
+                  </button>
+                </span>
               </div>
             )}
 

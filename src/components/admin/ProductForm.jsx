@@ -17,11 +17,26 @@ function Field({ label, hint, children }) {
   );
 }
 
+// WooCommerce spreads stock across manage_stock and stock_status, which can
+// disagree with each other. These are the three states that actually mean
+// something to someone running a shop.
+const STOCK_MODES = [
+  { value: "unlimited", label: "Unlimited" },
+  { value: "tracked", label: "Track qty" },
+  { value: "out", label: "Out of stock" },
+];
+
+const STOCK_HINTS = {
+  unlimited: "Always available — no counting",
+  tracked: "Counts down with each sale, and goes off sale at zero",
+  out: "Not for sale right now",
+};
+
 const EMPTY = {
   // 3004 is ayurvedic medicaments at 5%, which is what 506 of the 507 lines in
   // the reference month carried. Prefilling it means a new product arrives with
   // the code already written rather than leaning on the report's fallback.
-  name: "", mrp: "", price: "", sku: "", stockQty: "", hsn: "3004", codDisabled: false,
+  name: "", mrp: "", price: "", sku: "", stockQty: "", stockMode: "unlimited", hsn: "3004", codDisabled: false,
   description: "", shortDescription: "", categoryIds: [], brandIds: [], images: [],
 };
 
@@ -50,6 +65,7 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
       price: product.salePrice ? String(product.salePrice) : "",
       sku: product.sku || "",
       stockQty: product.stockQty != null ? String(product.stockQty) : "",
+      stockMode: product.stockMode || "unlimited",
       hsn: product.hsn || "",
       codDisabled: Boolean(product.codDisabled),
       description: product.description || "",
@@ -76,7 +92,8 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
         mrp: form.mrp === "" ? undefined : Number(form.mrp),
         price: form.price === "" ? undefined : Number(form.price),
         sku: form.sku.trim() || undefined,
-        stockQty: form.stockQty === "" ? undefined : Number(form.stockQty),
+        stockMode: form.stockMode,
+        stockQty: form.stockMode === "tracked" && form.stockQty !== "" ? Number(form.stockQty) : undefined,
         hsn: form.hsn.trim(),
         codDisabled: form.codDisabled,
         description: form.description,
@@ -201,8 +218,33 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
         <Field label="SKU" hint="Optional">
           <input value={form.sku} onChange={set("sku")} className={inputCls} />
         </Field>
-        <Field label="Stock quantity" hint="Blank means don't track stock">
-          <input value={form.stockQty} onChange={set("stockQty")} inputMode="numeric" className={inputCls} />
+        <Field label="Stock" hint={STOCK_HINTS[form.stockMode]}>
+          <div className="flex gap-1">
+            {STOCK_MODES.map((m) => (
+              <button
+                key={m.value}
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, stockMode: m.value }))}
+                className={`flex-1 px-2 py-1.5 rounded-lg text-[11.5px] font-medium border transition-colors ${
+                  form.stockMode === m.value
+                    ? "bg-ayur-green text-white border-ayur-green"
+                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          {/* Only a tracked product has a number worth asking for. */}
+          {form.stockMode === "tracked" && (
+            <input
+              value={form.stockQty}
+              onChange={set("stockQty")}
+              inputMode="numeric"
+              placeholder="How many in stock"
+              className={`${inputCls} mt-1.5`}
+            />
+          )}
         </Field>
       </div>
 

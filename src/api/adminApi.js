@@ -167,8 +167,8 @@ export function resyncStore() {
   return adminSend("/api/admin/store/sync", "POST", {});
 }
 
-export function fetchCatalogue({ q = "", need = "", cod = "any", hsn = "", minPrice = "", maxPrice = "", page = 1, perPage = 50 } = {}) {
-  const params = new URLSearchParams({ q, need, cod, page, perPage });
+export function fetchCatalogue({ q = "", need = "", cod = "any", hsn = "", stock = "any", minPrice = "", maxPrice = "", page = 1, perPage = 50 } = {}) {
+  const params = new URLSearchParams({ q, need, cod, stock, page, perPage });
   if (hsn) params.set("hsn", hsn);
   if (minPrice !== "") params.set("minPrice", minPrice);
   if (maxPrice !== "") params.set("maxPrice", maxPrice);
@@ -186,6 +186,12 @@ export function setProductsCod(productIds, codDisabled) {
 // where one is missing; this makes the catalogue say so.
 export function setProductsHsn(productIds, hsn = "3004") {
   return adminSend("/api/admin/products/hsn", "POST", { productIds, hsn });
+}
+
+// Stock across many products at once: unlimited, a tracked quantity, or off
+// sale entirely.
+export function setProductsStock(productIds, mode, quantity) {
+  return adminSend("/api/admin/products/stock", "POST", { productIds, mode, quantity });
 }
 
 export function fetchCustomers({
