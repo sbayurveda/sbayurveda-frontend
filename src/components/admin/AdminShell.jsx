@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import {
-  BarChart3, ShoppingBag, Package, Users, Image as ImageIcon, Receipt, Settings, LogOut,
+  BarChart3, ShoppingBag, Package, Users, Image as ImageIcon, Receipt, Settings, LogOut, Tags,
   PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 
@@ -17,6 +17,7 @@ const SECTIONS = [
   { to: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { to: "/admin/products", label: "Products", icon: Package },
   { to: "/admin/customers", label: "Customers", icon: Users },
+  { to: "/admin/taxonomy", label: "Catalogue", icon: Tags },
   { to: "/admin/creatives", label: "Creatives", icon: ImageIcon },
   { to: "/admin/tax", label: "Tax", icon: Receipt },
   { to: "/admin/settings", label: "Settings", icon: Settings },
@@ -49,7 +50,10 @@ function useCollapsed() {
 
 export default function AdminShell({ title, subtitle, actions, onSignOut, children }) {
   const { pathname } = useLocation();
-  const isCurrent = (s) => (s.end ? pathname === s.to : pathname.startsWith(s.to));
+  // Matched on a path boundary, not a bare prefix: "/admin/taxonomy" starts
+  // with "/admin/tax", which lit up two sections at once.
+  const isCurrent = (s) =>
+    s.end ? pathname === s.to : pathname === s.to || pathname.startsWith(`${s.to}/`);
   const [collapsed, setCollapsed] = useCollapsed();
 
   return (

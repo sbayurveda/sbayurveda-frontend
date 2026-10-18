@@ -254,6 +254,24 @@ export async function downloadTaxCsv({ from, to }) {
   return { blob: await res.blob(), filename: `MTR_B2C_${from}_to_${to}.csv` };
 }
 
+// --- Categories and brands -------------------------------------------------
+
+export function fetchTerms(kind) {
+  return adminGet(`/api/admin/taxonomy/${kind}`);
+}
+
+export function createTerm(kind, term) {
+  return adminSend(`/api/admin/taxonomy/${kind}`, "POST", term);
+}
+
+export function updateTerm(kind, id, changes) {
+  return adminSend(`/api/admin/taxonomy/${kind}/${id}`, "PATCH", changes);
+}
+
+export function deleteTerm(kind, id) {
+  return adminSend(`/api/admin/taxonomy/${kind}/${id}`, "DELETE", {});
+}
+
 // --- The catalogue as a spreadsheet ----------------------------------------
 
 export async function downloadCatalogueCsv() {

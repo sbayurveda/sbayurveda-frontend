@@ -29,6 +29,7 @@ const AdminProducts = lazy(() => import("./pages/AdminProducts"));
 const AdminSales = lazy(() => import("./pages/AdminSales"));
 const AdminCustomers = lazy(() => import("./pages/AdminCustomers"));
 const AdminCreatives = lazy(() => import("./pages/AdminCreatives"));
+const AdminTaxonomy = lazy(() => import("./pages/AdminTaxonomy"));
 const AdminTax = lazy(() => import("./pages/AdminTax"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 
@@ -141,6 +142,20 @@ function App() {
               }
             >
               <AdminCreatives />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/admin/taxonomy"
+          element={
+            <Suspense
+              fallback={
+                <div className="min-h-screen flex items-center justify-center bg-slate-100 text-sm text-slate-500">
+                  Loading admin…
+                </div>
+              }
+            >
+              <AdminTaxonomy />
             </Suspense>
           }
         />
