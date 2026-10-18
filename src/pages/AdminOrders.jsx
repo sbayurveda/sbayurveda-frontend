@@ -335,7 +335,7 @@ export default function AdminOrders() {
         toast.error("None of those orders could be invoiced.");
         return;
       }
-      invoicesPdf(invoices).save(`Invoices-${invoices.length}.pdf`);
+      (await invoicesPdf(invoices)).save(`Invoices-${invoices.length}.pdf`);
       // Orders that could not be invoiced are named rather than silently
       // missing from a file someone is about to file a claim with.
       if (failed?.length) {

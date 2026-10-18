@@ -37,11 +37,17 @@ export default function InvoicePanel({ order, onAuthError }) {
     return () => { cancelled = true; };
   }, [order, onAuthError]);
 
-  function download() {
+  const [saving, setSaving] = useState(false);
+
+  async function download() {
+    setSaving(true);
     try {
-      invoicePdf(invoice).save(invoiceFilename(invoice));
+      const doc = await invoicePdf(invoice);
+      doc.save(invoiceFilename(invoice));
     } catch (err) {
       toast.error(`Couldn't build the PDF: ${err.message}`);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -68,9 +74,11 @@ export default function InvoicePanel({ order, onAuthError }) {
         </span>
         <button
           onClick={download}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] font-semibold bg-ayur-green text-white hover:opacity-90"
+          disabled={saving}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] font-semibold bg-ayur-green text-white hover:opacity-90 disabled:opacity-60"
         >
-          <Download size={13} /> Download PDF
+          {saving ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+          Download PDF
         </button>
       </div>
 
@@ -79,7 +87,7 @@ export default function InvoicePanel({ order, onAuthError }) {
       {!invoice.reconciles && (
         <p className="flex items-start gap-1.5 mb-2 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">
           <AlertTriangle size={13} className="shrink-0 mt-px" />
-          This invoice differs from the order total by {money(invoice.difference)}. Check it before filing.
+          This invoice differs from the order total by {`\u20B9${money(invoice.difference)}`}. Check it before filing.
         </p>
       )}
 
@@ -103,14 +111,14 @@ export default function InvoicePanel({ order, onAuthError }) {
                 <Cell>{l.description}</Cell>
                 <Cell>{l.hsn || "—"}</Cell>
                 <Cell align="right">{l.qty ?? "—"}</Cell>
-                <Cell align="right" className="tabular-nums">{money(l.taxable)}</Cell>
+                <Cell align="right" className="tabular-nums">{`\u20B9${money(l.taxable)}`}</Cell>
                 <Cell align="right" className="tabular-nums">
-                  {money(invoice.intraState ? l.cgst : l.igst)}
+                  {`\u20B9${money(invoice.intraState ? l.cgst : l.igst)}`}
                 </Cell>
                 {invoice.intraState && (
-                  <Cell align="right" className="tabular-nums">{money(l.sgst)}</Cell>
+                  <Cell align="right" className="tabular-nums">{`\u20B9${money(l.sgst)}`}</Cell>
                 )}
-                <Cell align="right" bold className="tabular-nums">{money(l.total)}</Cell>
+                <Cell align="right" bold className="tabular-nums">{`\u20B9${money(l.total)}`}</Cell>
               </tr>
             ))}
           </tbody>
@@ -121,7 +129,7 @@ export default function InvoicePanel({ order, onAuthError }) {
               </td>
               <td className="px-2 py-1.5 text-right text-[10px] uppercase tracking-wide text-slate-400">Total</td>
               <td className="px-2 py-1.5 text-right font-bold text-slate-900 tabular-nums">
-                {money(invoice.totals.grand)}
+                {`\u20B9${money(invoice.totals.grand)}`}
               </td>
             </tr>
           </tfoot>
