@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, Save, AlertTriangle, ExternalLink } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, Save, AlertTriangle, ExternalLink, Bold } from "lucide-react";
 import toast from "react-hot-toast";
 import { createProduct, updateProduct, AdminAuthError } from "../../api/adminApi";
 import ProductImageDrop from "./ProductImageDrop";
+import { htmlToEditable, editableToHtml, toggleMarker } from "../../utils/richText";
 
 const inputCls =
   "w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ayur-green/25";
@@ -37,7 +38,7 @@ const EMPTY = {
   // the reference month carried. Prefilling it means a new product arrives with
   // the code already written rather than leaning on the report's fallback.
   name: "", mrp: "", price: "", sku: "", stockQty: "", stockMode: "unlimited", hsn: "3004", codDisabled: false,
-  description: "", shortDescription: "", categoryIds: [], brandIds: [], images: [],
+  description: "", descriptionRaw: false, shortDescription: "", categoryIds: [], brandIds: [], images: [],
 };
 
 // What the storefront needs before it will show a product at all. Kept in step
@@ -56,6 +57,20 @@ function blockingIssues(form) {
 export default function ProductForm({ product, taxonomy, canUpload, onSaved, onAuthError, onCancel }) {
   const [form, setForm] = useState(EMPTY);
   const [busy, setBusy] = useState(false);
+  const descRef = useRef(null);
+
+  // Select a line, press Bold. The selection is kept afterwards, so pressing
+  // it twice puts the line back to normal.
+  function boldSelection() {
+    const el = descRef.current;
+    if (!el) return;
+    const { value, start, end } = toggleMarker(form.description, el.selectionStart, el.selectionEnd);
+    setForm((f) => ({ ...f, description: value }));
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start, end);
+    });
+  }
 
   useEffect(() => {
     if (!product) { setForm(EMPTY); return; }
@@ -68,7 +83,10 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
       stockMode: product.stockMode || "unlimited",
       hsn: product.hsn || "",
       codDisabled: Boolean(product.codDisabled),
-      description: product.description || "",
+      // Held as plain text with **bold** markers while editing, and turned
+      // back into HTML on save.
+      description: htmlToEditable(product.description).text,
+      descriptionRaw: htmlToEditable(product.description).raw,
       shortDescription: product.shortDescription || "",
       categoryIds: (product.categories || []).map((c) => c.id),
       brandIds: (product.brands || []).map((b) => b.id),
@@ -96,7 +114,8 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
         stockQty: form.stockMode === "tracked" && form.stockQty !== "" ? Number(form.stockQty) : undefined,
         hsn: form.hsn.trim(),
         codDisabled: form.codDisabled,
-        description: form.description,
+        // Markers back to the HTML WooCommerce stores and the storefront renders.
+        description: editableToHtml(form.description, { raw: form.descriptionRaw }),
         shortDescription: form.shortDescription,
         categoryIds: form.categoryIds,
         brandIds: form.brandIds,
@@ -258,11 +277,26 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
         />
       </Field>
 
-      <Field label="Description" hint="Shown on the product page. Plain text is fine.">
-        {/* Set in bold so the description reads as the body of the product
-            rather than as another short field like SKU or HSN. */}
-        <textarea value={form.description} onChange={set("description")} rows={5}
-                  className={`${inputCls} resize-y font-semibold text-slate-800`}
+      <Field
+        label="Description"
+        hint={
+          form.descriptionRaw
+            ? "This description uses formatting the simple editor can't show, so it is being edited as HTML."
+            : "Select a line and press Bold to make it stand out — like “How to use:”."
+        }
+      >
+        {!form.descriptionRaw && (
+          <button
+            type="button"
+            onClick={boldSelection}
+            title="Bold the selected text"
+            className="inline-flex items-center gap-1 mb-1.5 px-2 py-1 rounded-lg text-[11.5px] font-semibold border bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+          >
+            <Bold size={12} /> Bold
+          </button>
+        )}
+        <textarea ref={descRef} value={form.description} onChange={set("description")} rows={5}
+                  className={`${inputCls} resize-y`}
                   placeholder="What it is, what it helps with, how to take it." />
       </Field>
 
