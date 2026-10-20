@@ -91,8 +91,9 @@ export default function InvoicePanel({ order, onAuthError }) {
         </p>
       )}
 
-      <div className="overflow-x-auto border border-slate-200 rounded-lg">
-        <table className="w-full text-[11.5px] min-w-[460px]">
+      {/* Scrolls inside its own box rather than pushing the drawer sideways. */}
+      <div className="overflow-x-auto -mx-0.5 border border-slate-200 rounded-lg">
+        <table className="w-full text-[11.5px] min-w-[380px]">
           <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-400">
             <tr>
               <th className="px-2 py-1.5 text-left font-semibold">Description</th>

@@ -230,9 +230,19 @@ export default function OrderEditPanel({ order, onUpdated, onAuthError, onNoteAd
           )}
         </label>
 
+        {/* Clicking anywhere in the field opens the picker. A bare date input
+            only responds to its little calendar icon, which on a phone is a
+            target a few pixels wide. */}
         <label className="block mt-2.5">
           <Label>Pickup date</Label>
-          <input type="date" value={pickUpDate} onChange={(e) => setPickUpDate(e.target.value)} className={inputCls} />
+          <input
+            type="date"
+            value={pickUpDate}
+            onChange={(e) => setPickUpDate(e.target.value)}
+            onClick={(e) => e.currentTarget.showPicker?.()}
+            onFocus={(e) => e.currentTarget.showPicker?.()}
+            className={`${inputCls} cursor-pointer`}
+          />
         </label>
 
         <button

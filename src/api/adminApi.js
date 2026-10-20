@@ -110,8 +110,10 @@ async function adminSend(path, method, body) {
 // `markPaid` records that cash was collected and is deliberately separate from
 // `status`: dispatching a parcel is not payment, and the two must be able to
 // travel independently.
-export async function updateOrder(orderId, { status, tracking, markPaid } = {}) {
-  return adminSend(`/api/admin/orders/${orderId}`, "PATCH", { status, tracking, markPaid });
+export async function updateOrder(orderId, { status, tracking, markPaid, billing, shipping } = {}) {
+  return adminSend(`/api/admin/orders/${orderId}`, "PATCH", {
+    status, tracking, markPaid, billing, shipping,
+  });
 }
 
 export async function addOrderNote(orderId, note, { customerNote = false } = {}) {

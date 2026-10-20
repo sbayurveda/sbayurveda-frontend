@@ -259,8 +259,10 @@ export default function ProductForm({ product, taxonomy, canUpload, onSaved, onA
       </Field>
 
       <Field label="Description" hint="Shown on the product page. Plain text is fine.">
+        {/* Set in bold so the description reads as the body of the product
+            rather than as another short field like SKU or HSN. */}
         <textarea value={form.description} onChange={set("description")} rows={5}
-                  className={`${inputCls} resize-y`}
+                  className={`${inputCls} resize-y font-semibold text-slate-800`}
                   placeholder="What it is, what it helps with, how to take it." />
       </Field>
 

@@ -11,6 +11,10 @@ import { useSeo } from "../utils/useSeo";
 const STATUS_META = {
   pending: { label: "Pending Payment", className: "bg-gray-100 text-gray-600" },
   processing: { label: "Processing", className: "bg-amber-50 text-amber-700" },
+  // A parcel that has been handed to a courier is not finished, and saying
+  // "Completed" told the customer it was.
+  shipped: { label: "Shipped", className: "bg-indigo-50 text-indigo-700" },
+  delivered: { label: "Delivered", className: "bg-green-50 text-green-700" },
   "on-hold": { label: "On Hold", className: "bg-amber-50 text-amber-700" },
   completed: { label: "Completed", className: "bg-green-50 text-green-700" },
   cancelled: { label: "Cancelled", className: "bg-red-50 text-red-600" },

@@ -5,6 +5,7 @@ import { fetchOrderNotes, AdminAuthError } from "../../api/adminApi";
 import { sanitizeDescriptionHtml } from "../../utils/sanitizeHtml";
 import OrderEditPanel from "./OrderEditPanel";
 import InvoicePanel from "./InvoicePanel";
+import AddressEditor from "./AddressEditor";
 import CustomerHistoryPanel from "./CustomerHistoryPanel";
 import {
   customerName, deliveryMeta, formatAddress, formatDateTime, formatMoney,
@@ -129,11 +130,11 @@ export default function OrderDetailDrawer({ order, onClose, onAuthError, onUpdat
             </Section>
 
             <Section title="Billing address">
-              <p className="text-sm text-slate-700 leading-relaxed">{formatAddress(order.billing)}</p>
+              <AddressEditor order={order} which="billing" onUpdated={onUpdated} onAuthError={onAuthError} />
             </Section>
 
             <Section title="Shipping address">
-              <p className="text-sm text-slate-700 leading-relaxed">{formatAddress(order.shipping)}</p>
+              <AddressEditor order={order} which="shipping" onUpdated={onUpdated} onAuthError={onAuthError} />
             </Section>
 
             <Section title="Payment">
@@ -189,20 +190,62 @@ export default function OrderDetailDrawer({ order, onClose, onAuthError, onUpdat
 
             {order.customerNote && (
               <Section title="Customer note">
-                <p className="text-sm text-slate-700 bg-amber-50 border border-amber-100 rounded-lg p-3 leading-relaxed">
+                <p className="text-sm text-slate-800 font-semibold bg-amber-50 border border-amber-100 rounded-lg p-3 leading-relaxed">
                   {order.customerNote}
                 </p>
               </Section>
             )}
 
-            <Section title="Shipping & tracking">
-              <Row label="Carrier" value={order.carrierName} />
-              <Row label="Tracking number" value={order.trackingCode} mono />
-              {order.trackingUrl && (
-                <a href={order.trackingUrl} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 mt-2 text-sm font-semibold text-blue-700 hover:underline">
-                  Open tracking page <ExternalLink size={13} />
-                </a>
+            <Section title="Shipment">
+              {/* Everything about the parcel in one place. The tracking number
+                  is the thing most often read aloud to a customer on the
+                  phone, so it is big enough to read and tappable to open the
+                  courier's page. */}
+              {order.trackingCode || order.trackingUrl || order.carrierName ? (
+                <>
+                  <div className="flex flex-wrap items-center gap-2 mb-2.5">
+                    <span className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${statusMeta(order.status).className}`}>
+                      {statusMeta(order.status).label}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${deliveryMeta(order).className}`}>
+                      {deliveryMeta(order).label}
+                    </span>
+                  </div>
+
+                  {order.trackingCode && (
+                    <div className="mb-2">
+                      <span className="block text-[11px] font-semibold text-slate-500 mb-1">Tracking ID</span>
+                      {order.trackingUrl ? (
+                        <a
+                          href={order.trackingUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-between gap-2 w-full px-3 py-2.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-800 font-mono text-sm font-semibold break-all hover:bg-blue-100"
+                        >
+                          <span className="min-w-0 break-all">{order.trackingCode}</span>
+                          <ExternalLink size={14} className="shrink-0" />
+                        </a>
+                      ) : (
+                        <p className="px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 font-mono text-sm font-semibold text-slate-800 break-all">
+                          {order.trackingCode}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <Row label="Carrier" value={order.carrierName} />
+                  {order.pickUpDate && <Row label="Pickup date" value={String(order.pickUpDate).slice(0, 10)} />}
+                  {order.trackingUrl && !order.trackingCode && (
+                    <a href={order.trackingUrl} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 mt-2 text-sm font-semibold text-blue-700 hover:underline">
+                      Open tracking page <ExternalLink size={13} />
+                    </a>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-slate-400">
+                  Not shipped yet — add the courier and tracking number below.
+                </p>
               )}
             </Section>
 
