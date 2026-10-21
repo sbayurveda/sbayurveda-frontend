@@ -192,6 +192,11 @@ export function setProductsHsn(productIds, hsn = "3004") {
 
 // Stock across many products at once: unlimited, a tracked quantity, or off
 // sale entirely.
+// Deletes go to the WooCommerce trash and can be restored from wp-admin.
+export function deleteProducts(productIds) {
+  return adminSend("/api/admin/products/delete", "POST", { productIds });
+}
+
 export function setProductsStock(productIds, mode, quantity) {
   return adminSend("/api/admin/products/stock", "POST", { productIds, mode, quantity });
 }

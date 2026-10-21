@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, ImageOff, FileText, IndianRupee, RefreshCw, ShieldOff, ShieldCheck } from "lucide-react";
+import { Loader2, ImageOff, FileText, IndianRupee, RefreshCw, ShieldOff, ShieldCheck, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   getAdminSession, clearAdminSession, isAdminApiConfigured, AdminAuthError,
-  fetchProductCapabilities, fetchProductTaxonomy, fetchCatalogue, setProductsCod, setProductsHsn, setProductsStock,
+  fetchProductCapabilities, fetchProductTaxonomy, fetchCatalogue, setProductsCod, setProductsHsn, setProductsStock, deleteProducts,
 } from "../api/adminApi";
 import AdminLogin from "../components/admin/AdminLogin";
 import AdminShell from "../components/admin/AdminShell";
@@ -36,6 +36,8 @@ export default function AdminProducts() {
   const [cod, setCod] = useState("any");
   const [matchingIds, setMatchingIds] = useState([]);
   const [stock, setStock] = useState("any");
+  const [selected, setSelected] = useState(new Set());
+  const [deleting, setDeleting] = useState(false);
   const [bulkQty, setBulkQty] = useState("");
   const [withoutHsn, setWithoutHsn] = useState(0);
   const [hsnIds, setHsnIds] = useState([]);
@@ -96,6 +98,33 @@ export default function AdminProducts() {
         : prev.filter((p) => p.id !== saved.id),
     );
     if (editing?.id === saved.id) setEditing(saved.missing.length ? saved : null);
+  }
+
+  // Deleting sends a product to the WooCommerce trash, where it can be
+  // restored from wp-admin. Past orders keep their own copy of the name, SKU
+  // and price, so invoices and the GST return are unaffected.
+  async function removeProducts(targets) {
+    if (!targets.length || deleting) return;
+    const what = targets.length === 1
+      ? `Delete "${targets[0].name}"?`
+      : `Delete these ${targets.length} products?`;
+    if (!window.confirm(`${what}\n\nThey go to the WooCommerce trash and can be restored from wp-admin. Past orders and invoices are not affected.`)) return;
+
+    setDeleting(true);
+    try {
+      const { deleted, failed } = await deleteProducts(targets.map((p) => p.id));
+      const ids = new Set(targets.map((p) => p.id));
+      setIncomplete((prev) => prev.filter((p) => !ids.has(p.id) || failed.some((f) => f.id === p.id)));
+      setSelected(new Set());
+      if (failed?.length) toast.error(`Deleted ${deleted}; ${failed.length} could not be deleted.`);
+      else toast.success(`${deleted} product${deleted === 1 ? "" : "s"} deleted`);
+      loadIncomplete();
+    } catch (err) {
+      if (err instanceof AdminAuthError) handleAuthError(err);
+      else toast.error(err.message);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   // "Everything from this supplier is out of stock" is the instruction someone
@@ -319,9 +348,41 @@ export default function AdminProducts() {
               {q ? `No product matches "${q}".` : need === "" ? "No products yet." : "Nothing missing here."}
             </p>
           ) : (
+            <>
+            {selected.size > 0 && (
+              <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-slate-100 bg-red-50/60">
+                <span className="text-[11.5px] text-slate-700">
+                  <b className="tabular-nums">{selected.size}</b> selected
+                </span>
+                <button
+                  onClick={() => removeProducts(incomplete.filter((p) => selected.has(p.id)))}
+                  disabled={deleting}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] font-semibold border bg-white text-red-700 border-red-300 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                  Delete selected
+                </button>
+                <button onClick={() => setSelected(new Set())}
+                  className="text-[11.5px] text-slate-500 underline hover:text-slate-800">
+                  Clear
+                </button>
+              </div>
+            )}
+
             <ul className="divide-y divide-slate-100">
               {incomplete.map((p) => (
                 <li key={p.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(p.id)}
+                    onChange={() => setSelected((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(p.id)) next.delete(p.id); else next.add(p.id);
+                      return next;
+                    })}
+                    aria-label={`Select ${p.name}`}
+                    className="accent-ayur-green cursor-pointer shrink-0"
+                  />
                   {p.images[0]
                     ? <img src={p.images[0].src} alt="" className="w-10 h-10 object-cover rounded border border-slate-200" />
                     : <span className="w-10 h-10 rounded border border-dashed border-slate-300 grid place-items-center text-slate-300">
@@ -341,9 +402,16 @@ export default function AdminProducts() {
                           className="text-xs font-semibold text-ayur-green hover:underline shrink-0">
                     Fix
                   </button>
+                  <button onClick={() => removeProducts([p])}
+                          disabled={deleting}
+                          title={`Delete ${p.name}`}
+                          className="shrink-0 p-1.5 text-slate-300 hover:text-red-600 disabled:opacity-40">
+                    <Trash2 size={15} />
+                  </button>
                 </li>
               ))}
             </ul>
+            </>
           )}
 
           <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-100 text-xs text-slate-500">
