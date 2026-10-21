@@ -330,7 +330,7 @@ export default function AdminOrders() {
     if (!selectedOrders.length || bulkBusy) return;
     setBulkBusy(true);
     try {
-      const { invoices, failed } = await fetchInvoices(selectedOrders.map((o) => o.id));
+      const { invoices, failed } = await fetchInvoices(selectedOrders.map((o) => o.id), { issue: true });
       if (!invoices.length) {
         toast.error("None of those orders could be invoiced.");
         return;

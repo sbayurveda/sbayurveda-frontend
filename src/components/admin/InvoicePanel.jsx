@@ -42,8 +42,12 @@ export default function InvoicePanel({ order, onAuthError }) {
   async function download() {
     setSaving(true);
     try {
-      const doc = await invoicePdf(invoice);
-      doc.save(invoiceFilename(invoice));
+      // Producing the PDF is what issues the invoice, so the number is
+      // allocated here rather than when the panel was merely opened.
+      const { invoice: issued } = await fetchInvoice(order.id, { issue: true });
+      setInvoice(issued);
+      const doc = await invoicePdf(issued);
+      doc.save(invoiceFilename(issued));
     } catch (err) {
       toast.error(`Couldn't build the PDF: ${err.message}`);
     } finally {
@@ -67,7 +71,8 @@ export default function InvoicePanel({ order, onAuthError }) {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
         <span className="text-[11.5px] text-slate-500">
-          Invoice <b className="text-slate-800">{invoice.invoiceNumber}</b> · {invoice.invoiceDate}
+          Invoice <b className="text-slate-800">{invoice.invoiceNumber || "— issued on download"}</b>
+          {" · order "}{invoice.orderNumber} · {invoice.invoiceDate}
           {invoice.transactionType !== "Shipment" && (
             <b className="ml-1.5 text-amber-700">{invoice.transactionType}</b>
           )}

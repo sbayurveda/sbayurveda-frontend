@@ -232,12 +232,15 @@ export function fetchCustomerHistory(orderId) {
   return adminGet(`/api/admin/orders/${orderId}/customer`);
 }
 
-export function fetchInvoice(orderId) {
-  return adminGet(`/api/admin/orders/${orderId}/invoice`);
+// `issue` is set only when the PDF is actually produced. Opening an order to
+// look at it must not consume an invoice number, or the series grows a gap
+// for every order someone glances at.
+export function fetchInvoice(orderId, { issue = false } = {}) {
+  return adminGet(`/api/admin/orders/${orderId}/invoice${issue ? "?issue=true" : ""}`);
 }
 
-export function fetchInvoices(orderIds) {
-  return adminSend("/api/admin/invoices", "POST", { orderIds });
+export function fetchInvoices(orderIds, { issue = false } = {}) {
+  return adminSend("/api/admin/invoices", "POST", { orderIds, issue });
 }
 
 // --- Tax -------------------------------------------------------------------

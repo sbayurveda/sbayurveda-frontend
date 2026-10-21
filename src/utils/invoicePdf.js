@@ -130,9 +130,13 @@ export function drawInvoice(doc, inv, a) {
   buyerLines.forEach((line, i) => text(line, 57.443, 653.794 - i * 13.484));
 
   // Invoice meta, right.
+  // Order Number joins the block because the invoice number is no longer the
+  // order number. Without it a printed invoice could not be traced back to
+  // the order it belongs to.
   const meta = [
     ["Invoice Date:", inv.invoiceDateLong],
-    ["Invoice Number", inv.invoiceNumber],
+    ["Invoice Number", inv.invoiceNumber || "(not issued)"],
+    ["Order Number", inv.orderNumber],
     ["Order Date:", inv.orderDateLong],
     ["Payment Method:", inv.payment.method],
   ];
