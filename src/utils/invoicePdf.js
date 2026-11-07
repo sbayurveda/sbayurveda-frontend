@@ -135,7 +135,7 @@ export function drawInvoice(doc, inv, a) {
   // the order it belongs to.
   const meta = [
     ["Invoice Date:", inv.invoiceDateLong],
-    ["Invoice Number", inv.invoiceNumber || "(not issued)"],
+    ["Invoice Number", inv.invoiceNumber || "-"],
     ["Order Number", inv.orderNumber],
     ["Order Date:", inv.orderDateLong],
     ["Payment Method:", inv.payment.method],
