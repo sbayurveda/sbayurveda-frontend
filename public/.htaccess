@@ -2,10 +2,26 @@
   RewriteEngine On
   RewriteBase /
   RewriteRule ^index\.html$ - [L]
+
+  # Prerendered pages.
+  #
+  # The build writes a real page per product at product/<slug>/index.html, so
+  # a crawler gets the product's own title, price and availability instead of
+  # the empty app shell. Served directly here rather than by letting Apache
+  # find the directory: DirectorySlash would 301 /product/foo to
+  # /product/foo/, and the canonical in the page has no trailing slash, so
+  # every product URL would redirect to a URL that disagrees with it.
+  RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f
+  RewriteRule ^(.+?)/?$ /$1/index.html [L]
+
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule . /index.html [L]
 </IfModule>
+
+# A prerendered page names the current bundle, exactly like index.html, so it
+# must not be held by a browser either. The rule below already matches any
+# .html file; this comment is here because the reason is easy to lose.
 
 # Security headers
 <IfModule mod_headers.c>
