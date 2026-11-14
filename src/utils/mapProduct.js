@@ -20,6 +20,14 @@ export function decodeEntities(str = "") {
   return str.replace(/&#?\w+;/g, (entity) => HTML_ENTITIES[entity] ?? entity);
 }
 
+// A handful of imported descriptions carry leftover markdown bold markers and
+// render as "Amlantak Syrup (200ml)****" on the product page. They are not
+// formatting any more — the editor stores bold as <strong> — so they are just
+// stray characters. A lone asterisk is a footnote mark and is left alone.
+export function stripStrayBoldMarkers(html = "") {
+  return html.replace(/\*{2,}/g, "");
+}
+
 function stripHtml(html = "") {
   return decodeEntities(html.replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
 }
@@ -63,9 +71,9 @@ export function mapWooProduct(raw) {
   // Keep real structure (headings like "Key Ingredients", bullet lists, etc.)
   // instead of flattening everything into one run-on paragraph — WooCommerce
   // descriptions are genuinely formatted this way on the real site.
-  const descriptionHtml = sanitizeDescriptionHtml(raw.description);
+  const descriptionHtml = stripStrayBoldMarkers(sanitizeDescriptionHtml(raw.description));
   const hasDescription = stripHtml(descriptionHtml).length > 0;
-  const shortDescriptionText = stripHtml(raw.short_description);
+  const shortDescriptionText = stripStrayBoldMarkers(stripHtml(raw.short_description));
   const description = hasDescription
     ? descriptionHtml
     : `<p>${shortDescriptionText || `${name} by ${brand}.`}</p>`;
