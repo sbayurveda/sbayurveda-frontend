@@ -181,7 +181,10 @@ export default function Header() {
             className="lg:hidden flex items-center gap-1 text-xs font-semibold text-ayur-green bg-ayur-cream px-2.5 py-2 rounded-full hover:bg-amber-100"
             aria-label="Track My Order"
           >
-            <PackageSearch size={17} /> Track My Order
+            <PackageSearch size={17} />
+            {/* Below ~360px the label is what pushes this row past the screen
+                edge. The icon and its aria-label still say what it does. */}
+            <span className="max-[359px]:hidden">Track My Order</span>
           </Link>
           <button
             className="md:hidden p-2 rounded-full hover:bg-gray-100"

@@ -40,7 +40,7 @@ export default function LiveOrderNotifier() {
 
   return (
     <div
-      className={`fixed bottom-4 left-4 z-30 max-w-xs bg-white rounded-xl shadow-card-hover border border-gray-100 px-4 py-3 flex items-center gap-3 transition-all duration-500 ${
+      className={`fixed bottom-4 left-4 right-4 sm:right-auto z-30 max-w-xs bg-white rounded-xl shadow-card-hover border border-gray-100 px-4 py-3 flex items-center gap-3 transition-all duration-500 ${
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
       }`}
     >
