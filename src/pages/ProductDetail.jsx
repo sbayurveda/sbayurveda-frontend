@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams, Navigate } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
   Star,
   Heart,
@@ -17,6 +17,7 @@ import toast from "react-hot-toast";
 import { useCatalogStore } from "../context/catalogStore";
 import { useStore } from "../context/store";
 import ProductCard from "../components/ProductCard";
+import NotFound from "./NotFound";
 import ProductImageGallery from "../components/ProductImageGallery";
 import { testimonials } from "../data/testimonials";
 import { getSocialProof } from "../utils/socialProof";
@@ -37,6 +38,7 @@ export default function ProductDetail() {
   const wishlist = useStore((s) => s.wishlist);
   const products = useCatalogStore((s) => s.products);
   const status = useCatalogStore((s) => s.status);
+  const complete = useCatalogStore((s) => s.complete);
 
   const product = products.find((p) => p.slug === slug);
 
@@ -80,14 +82,39 @@ export default function ProductDetail() {
   });
 
   if (!product) {
-    if (status === "loading" || status === "idle") {
+    // The catalogue streams in a page at a time and reports "ready" after the
+    // first one, so a slug missing from the list usually means it has not
+    // arrived yet, not that it does not exist. Waiting for `complete` is the
+    // difference between a visitor from Google landing on this product and
+    // being thrown back to the home page: only the first hundred or so
+    // products had loaded by the time this ran.
+    // The catalogue could not be fetched at all. This is not a missing
+    // product, and it must not render NotFound: that marks the page noindex,
+    // so one API hiccup while Googlebot is rendering would drop a real
+    // product out of search.
+    if (status === "error") {
+      return (
+        <div className="container-px max-w-7xl mx-auto py-16 text-center text-gray-500">
+          <p className="mb-4">We couldn&apos;t load this product just now.</p>
+          <button type="button" onClick={() => window.location.reload()} className="btn-primary px-6 py-3 text-sm">
+            Try again
+          </button>
+        </div>
+      );
+    }
+
+    if (!complete) {
       return (
         <div className="container-px max-w-7xl mx-auto py-16 text-center text-gray-500">
           Loading product...
         </div>
       );
     }
-    return <Navigate to="/" replace />;
+    // A product that really is gone gets a 404, not a silent bounce to the
+    // home page: the visitor keeps the URL they clicked and can see what
+    // happened, and NotFound marks itself noindex so the dead URL drops out
+    // of search instead of looking like a duplicate of the home page.
+    return <NotFound />;
   }
 
   const isWishlisted = wishlist.includes(product.id);

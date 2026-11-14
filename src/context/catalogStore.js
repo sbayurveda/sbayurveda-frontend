@@ -45,6 +45,13 @@ export const useCatalogStore = create((set, get) => ({
   products: cached?.products || [],
   brands: cached?.brands || [],
   status: cached ? "ready" : "idle", // idle | loading | ready | error
+  // "ready" means there is something to show — it flips as soon as the FIRST
+  // page arrives so the shop paints early. It does NOT mean the catalogue is
+  // whole. Anything that concludes "this slug does not exist" has to wait for
+  // `complete`, or it will reject products that simply have not streamed in
+  // yet. A cached catalogue is always a finished one, because only the final
+  // list is ever written to the cache.
+  complete: Boolean(cached),
   error: null,
   lastFetchedAt: cached?.lastFetchedAt || null,
 
@@ -59,7 +66,7 @@ export const useCatalogStore = create((set, get) => ({
     const hasExistingData = products.length > 0;
     // If we already have data (even stale), refresh quietly in the background
     // rather than blanking the UI back to a loading state.
-    if (!hasExistingData) set({ status: "loading", error: null });
+    if (!hasExistingData) set({ status: "loading", complete: false, error: null });
 
     try {
       const seenIds = new Set();
@@ -95,6 +102,7 @@ export const useCatalogStore = create((set, get) => ({
         products: finalProducts,
         brands: finalBrands,
         status: "ready",
+        complete: true,
         lastFetchedAt: now,
       });
       saveCache(finalProducts, finalBrands, now);

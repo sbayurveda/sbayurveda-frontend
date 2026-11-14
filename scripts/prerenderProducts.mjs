@@ -128,6 +128,16 @@ function visibleBody(f) {
   const was = f.regularPrice && f.regularPrice !== f.price ? ` <s>₹${f.regularPrice}</s>` : "";
   return [
     '<div id="prerendered-product">',
+    // The product photo has to be a real <img>, not just og:image and
+    // structured data. Without one in the markup Google had no page image to
+    // choose and fell back to the site logo, so the search result showed the
+    // SB Ayurveda logo where competitors showed the product. React replaces
+    // this the moment it mounts, and it is the same URL the app loads next,
+    // so the browser fetches it once either way.
+    f.image
+      ? `<img src="${escapeHtml(f.image)}" alt="${escapeHtml(f.name)}"`
+        + ` width="640" height="640" style="max-width:320px;height:auto" />`
+      : "",
     `<h1>${escapeHtml(f.name)}</h1>`,
     f.brand ? `<p>Brand: ${escapeHtml(f.brand)}</p>` : "",
     price ? `<p><strong>${price}</strong>${was}</p>` : "",

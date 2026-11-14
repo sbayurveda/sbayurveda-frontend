@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { useParams, Navigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Search } from "lucide-react";
 import { useCatalogStore } from "../context/catalogStore";
 import { slugify } from "../utils/slugify";
 import { brandLogos } from "../data/brandLogos";
 import { searchProducts } from "../utils/searchProducts";
 import ProductCard from "../components/ProductCard";
+import NotFound from "./NotFound";
 import { useSeo } from "../utils/useSeo";
 
 const SORT_OPTIONS = [
@@ -23,6 +24,7 @@ export default function BrandListing() {
   const products = useCatalogStore((s) => s.products);
   const brands = useCatalogStore((s) => s.brands);
   const status = useCatalogStore((s) => s.status);
+  const complete = useCatalogStore((s) => s.complete);
 
   const brand = brands.find((b) => (b.slug || slugify(b.name)) === brandSlug);
 
@@ -64,8 +66,32 @@ export default function BrandListing() {
     );
   }
 
-  if (!brand && status === "ready") {
-    return <Navigate to="/" replace />;
+  if (!brand && status === "error") {
+    // Not a missing brand — the catalogue never arrived. NotFound would
+    // noindex a real page over a transient failure.
+    return (
+      <div className="container-px max-w-7xl mx-auto py-16 text-center text-gray-500">
+        <p className="mb-4">We couldn&apos;t load these products just now.</p>
+        <button type="button" onClick={() => window.location.reload()} className="btn-primary px-6 py-3 text-sm">
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  if (!brand && complete) {
+    // Same race as the product page, and worse here: brands are only set once
+    // the whole catalogue has loaded, so while it streams every brand URL
+    // looked unknown and bounced a first-time visitor to the home page.
+    return <NotFound />;
+  }
+
+  if (!brand) {
+    return (
+      <div className="container-px max-w-7xl mx-auto py-16 text-center text-gray-500">
+        Loading products...
+      </div>
+    );
   }
 
   return (

@@ -117,6 +117,33 @@ describe("the page a crawler receives", () => {
     expect(data.brand.name).toBe("Sandu");
   });
 
+  it("shows the product photo as a real img, not only in meta tags", () => {
+    // With no <img> in the markup Google had no page image to pick and used
+    // the site logo as the search thumbnail, while competitors showed their
+    // product. og:image and structured data were not enough on their own.
+    expect(html).toContain('<img src="https://old.sbayurveda.com/wp-content/uploads/a.webp"');
+    expect(html).toContain('alt="Sandu Vasajeevani (200ml)"');
+    // Dimensions, so the placeholder does not shift the layout before React
+    // replaces it.
+    expect(html).toMatch(/<img [^>]*width="640" height="640"/);
+  });
+
+  it("escapes the image URL and alt text like everything else", () => {
+    const out = buildProductHtml(SHELL, productFacts({
+      ...RAW,
+      name: 'Herb & "Co"',
+      images: [{ src: 'https://x.test/a.webp?a=1&b="2"' }],
+    }));
+    expect(out).toContain('src="https://x.test/a.webp?a=1&amp;b=&quot;2&quot;"');
+    expect(out).toContain('alt="Herb &amp; &quot;Co&quot;"');
+  });
+
+  it("omits the img entirely when a product has no picture", () => {
+    const out = buildProductHtml(SHELL, { ...productFacts(RAW), image: "" });
+    expect(out).not.toMatch(/<img [^>]*id="prerendered/);
+    expect(out).toContain('<div id="prerendered-product"><h1>');
+  });
+
   it("says out of stock when it is", () => {
     const out = buildProductHtml(SHELL, productFacts({ ...RAW, is_in_stock: false }));
     const data = JSON.parse(out.match(/<script type="application\/ld\+json">(\{"@context[\s\S]*?)<\/script>/)[1]);
