@@ -66,6 +66,18 @@ describe("reading the product", () => {
     expect(plainText("<p>Joint &amp; Knee &#8217;s</p>")).toBe("Joint & Knee ’s");
   });
 
+  it("drops the stray bold markers the import left behind", () => {
+    // Nine descriptions in the catalogue end in a literal "****", which
+    // would otherwise be read out as part of the product's description.
+    expect(plainText("<p>Zandu Swarnaposhan Tablets (30tab)****</p>"))
+      .toBe("Zandu Swarnaposhan Tablets (30tab)");
+    expect(plainText("<p>**Dosage** 2 tsp</p>")).toBe("Dosage 2 tsp");
+  });
+
+  it("keeps a lone asterisk, which is a footnote and not formatting", () => {
+    expect(plainText("<p>Price *inclusive of tax</p>")).toBe("Price *inclusive of tax");
+  });
+
   it("cuts a long description on a word boundary", () => {
     const long = `<p>${"word ".repeat(200)}</p>`;
     const out = plainText(long, 100);

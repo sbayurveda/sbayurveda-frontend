@@ -50,6 +50,12 @@ export function plainText(html, limit = 300) {
     .replace(/&#0?39;|&apos;/g, "'")
     .replace(/&quot;/g, '"')
     .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    // Leftover markdown bold markers from the catalogue import: several
+    // descriptions end in a literal "****", which would be read as part of
+    // the product's description by Google and by anyone sharing the page.
+    // Bold means nothing in plain text, so the markers just go; a lone
+    // asterisk (a footnote mark) is left alone.
+    .replace(/\*{2,}/g, "")
     .replace(/\s+/g, " ")
     .trim();
   if (text.length <= limit) return text;
@@ -176,7 +182,7 @@ export function buildProductHtml(shell, f) {
   return html;
 }
 
-async function fetchAllProducts() {
+export async function fetchAllProducts() {
   const out = [];
   let page = 1;
   let totalPages = 1;
