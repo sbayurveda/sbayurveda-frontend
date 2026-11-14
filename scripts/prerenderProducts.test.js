@@ -106,7 +106,7 @@ describe("the page a crawler receives", () => {
   });
 
   it("carries the price and availability Merchant Center reads", () => {
-    const m = html.match(/<script type="application\/ld\+json">(\{"@context[\s\S]*?)<\/script>/);
+    const m = html.match(/<script type="application\/ld\+json"[^>]*>(\{"@context[\s\S]*?)<\/script>/);
     expect(m).toBeTruthy();
     const data = JSON.parse(m[1]);
     expect(data["@type"]).toBe("Product");
@@ -115,6 +115,15 @@ describe("the page a crawler receives", () => {
     expect(data.offers.availability).toBe("https://schema.org/InStock");
     expect(data.sku).toBe("SBA-9");
     expect(data.brand.name).toBe("Sandu");
+  });
+
+  it("marks its Product block so the app can replace it on mount", () => {
+    // Without the marker the app's own Product block is added alongside this
+    // one and the page declares two different products — the Rich Results
+    // Test reported exactly that, with two different names.
+    expect(html).toMatch(/<script type="application\/ld\+json" data-prerendered="product">/);
+    // The shell's own LocalBusiness block is untouched and unmarked.
+    expect(html).toMatch(/<script type="application\/ld\+json">\s*\{[\s\S]*?LocalBusiness/);
   });
 
   it("shows the product photo as a real img, not only in meta tags", () => {
@@ -146,7 +155,7 @@ describe("the page a crawler receives", () => {
 
   it("says out of stock when it is", () => {
     const out = buildProductHtml(SHELL, productFacts({ ...RAW, is_in_stock: false }));
-    const data = JSON.parse(out.match(/<script type="application\/ld\+json">(\{"@context[\s\S]*?)<\/script>/)[1]);
+    const data = JSON.parse(out.match(/<script type="application\/ld\+json"[^>]*>(\{"@context[\s\S]*?)<\/script>/)[1]);
     expect(data.offers.availability).toBe("https://schema.org/OutOfStock");
   });
 
@@ -177,7 +186,7 @@ describe("the page a crawler receives", () => {
   it("cannot be broken out of by a description containing a closing tag", () => {
     const nasty = productFacts({ ...RAW, description: "</script><img onerror=alert(1)>" });
     const out = buildProductHtml(SHELL, nasty);
-    const block = out.match(/<script type="application\/ld\+json">(\{"@context[\s\S]*?)<\/script>/)[1];
+    const block = out.match(/<script type="application\/ld\+json"[^>]*>(\{"@context[\s\S]*?)<\/script>/)[1];
     expect(block).not.toContain("</script>");
     expect(() => JSON.parse(block)).not.toThrow();
   });

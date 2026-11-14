@@ -184,7 +184,8 @@ export function buildProductHtml(shell, f) {
   // The shell's LocalBusiness block stays; the product is added alongside it.
   html = html.replace(
     "</head>",
-    `  <script type="application/ld+json">${structuredData(f)}</script>\n  </head>`,
+    `  <script type="application/ld+json" data-prerendered="product">`
+    + `${structuredData(f)}</script>\n  </head>`,
   );
 
   // Inside #root, so React clears it the moment it mounts.
