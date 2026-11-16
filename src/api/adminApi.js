@@ -169,6 +169,16 @@ export function resyncStore() {
   return adminSend("/api/admin/store/sync", "POST", {});
 }
 
+// Asks the server to rebuild the public site, which regenerates the Google
+// Shopping feed and the prices baked into the prerendered product pages.
+export function fetchSiteRebuild() {
+  return adminGet("/api/admin/site/rebuild");
+}
+
+export function startSiteRebuild() {
+  return adminSend("/api/admin/site/rebuild", "POST", {});
+}
+
 export function fetchCatalogue({ q = "", need = "", cod = "any", hsn = "", stock = "any", minPrice = "", maxPrice = "", page = 1, perPage = 50 } = {}) {
   const params = new URLSearchParams({ q, need, cod, stock, page, perPage });
   if (hsn) params.set("hsn", hsn);

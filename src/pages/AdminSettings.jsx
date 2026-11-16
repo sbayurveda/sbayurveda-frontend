@@ -6,6 +6,7 @@ import {
   fetchCodRules, saveCodRules, unblockCodPhone, fetchCatalogue, setProductsCod,
 } from "../api/adminApi";
 import AdminLogin from "../components/admin/AdminLogin";
+import GoogleFeedCard from "../components/admin/GoogleFeedCard";
 import AdminShell from "../components/admin/AdminShell";
 import { useSeo } from "../utils/useSeo";
 
@@ -216,6 +217,8 @@ export default function AdminSettings() {
               </p>
             )}
           </div>
+          <GoogleFeedCard onAuthError={onAuthError} />
+
           <div className="bg-white border border-slate-200 rounded-xl lg:col-span-2">
             <header className="px-4 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
               <div>
