@@ -25,6 +25,9 @@ import { fetchAllProducts, productFacts, isListable } from "./prerenderProducts.
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DIST = join(HERE, "..", "dist");
 const SITE = "https://sbayurveda.com";
+// Publishing a near-empty feed tells Merchant Center the catalogue shrank,
+// and it drops the missing items. Treat a collapse as a fault, not as news.
+const MIN_FEED_ITEMS = Number(process.env.MIN_FEED_ITEMS || 500);
 
 export function xmlEscape(text) {
   return String(text ?? "")
@@ -94,12 +97,24 @@ async function main() {
   try {
     products = await fetchAllProducts();
   } catch (err) {
-    // A deploy that ships no feed is recoverable; one that fails is not.
-    console.warn(`Feed: could not reach the catalogue (${err.message}); skipping.`);
-    return;
+    // Writing no feed is not the same as leaving the old one alone: the
+    // deploy rsyncs with --delete, so a skipped feed is a deleted feed, and
+    // Merchant Center's next fetch would 404. Fail and keep what is live.
+    console.error(`Feed: could not reach the catalogue (${err.message}).`);
+    process.exit(1);
   }
 
   const facts = products.filter(isListable).map(productFacts).filter((f) => f.price && f.image);
+
+  if (facts.length < MIN_FEED_ITEMS) {
+    console.error(
+      `Feed: only ${facts.length} items from ${products.length} products fetched, below the `
+      + `floor of ${MIN_FEED_ITEMS}. Refusing to publish a feed that would drop most of the `
+      + `catalogue out of Merchant Center. Set MIN_FEED_ITEMS to override.`,
+    );
+    process.exit(1);
+  }
+
   const xml = buildFeed(facts);
   writeFileSync(join(DIST, "google-feed.xml"), xml);
 

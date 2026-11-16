@@ -4,6 +4,26 @@ on:
   push:
     branches: [main]
 
+  # The product feed and the prerendered prices are baked at build time, so
+  # without this they only ever refresh when somebody pushes code. A price
+  # changed in WooCommerce would sit in the feed at its old value until the
+  # next unrelated deploy — Merchant Center disapproves an item whose feed
+  # price does not match its landing page. 21:30 UTC is 03:00 IST, before
+  # the Merchant Center fetch, so each day's fetch reads a feed built hours
+  # earlier rather than days.
+  schedule:
+    - cron: "30 21 * * *"
+
+  # Lets you refresh the feed on demand after changing prices, from the
+  # repository's Actions tab, without pushing a commit.
+  workflow_dispatch:
+
+# A scheduled rebuild and a push deploy both rsync into the same directory;
+# running them at once would interleave two sets of files.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

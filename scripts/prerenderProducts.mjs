@@ -30,6 +30,9 @@ const DIST = join(HERE, "..", "dist");
 const WC_BASE = "https://old.sbayurveda.com/wp-json/wc/store/v1";
 const SITE = "https://sbayurveda.com";
 const PAGE_SIZE = 100;
+// The catalogue runs ~1,715 listable products. Anything near this floor means
+// something is wrong upstream, not that the shop emptied out.
+const MIN_PRODUCT_PAGES = Number(process.env.MIN_PRODUCT_PAGES || 500);
 
 export function escapeHtml(text) {
   return String(text ?? "")
@@ -222,10 +225,12 @@ async function main() {
   try {
     products = await fetchAllProducts();
   } catch (err) {
-    // Never fail the build over this: a shell-only deploy is worse than a
-    // stale one, but a broken deploy is worse than both.
-    console.warn(`Prerender: could not reach the catalogue (${err.message}); skipping.`);
-    return;
+    // This used to warn and carry on. That was wrong once the deploy started
+    // rsyncing with --delete: writing no pages does not leave the old ones
+    // alone, it removes all 1,715 of them from the live server. Failing here
+    // aborts the deploy and production keeps the pages it already has.
+    console.error(`Prerender: could not reach the catalogue (${err.message}).`);
+    process.exit(1);
   }
 
   let written = 0;
@@ -237,6 +242,18 @@ async function main() {
     writeFileSync(join(dir, "index.html"), buildProductHtml(shell, facts));
     written += 1;
   }
+  // A catalogue that suddenly collapses is far more likely to be a partial
+  // API response than 1,200 products genuinely going away in one day, and a
+  // deploy would delete every page it did not write. Stop instead.
+  if (written < MIN_PRODUCT_PAGES) {
+    console.error(
+      `Prerender: only ${written} product pages from ${products.length} products fetched, `
+      + `below the floor of ${MIN_PRODUCT_PAGES}. Refusing to deploy a gutted catalogue. `
+      + `Set MIN_PRODUCT_PAGES to override if the catalogue really did shrink.`,
+    );
+    process.exit(1);
+  }
+
   console.log(`Prerender: wrote ${written} product pages of ${products.length} fetched.`);
 }
 
